@@ -24,7 +24,7 @@ _galaxy_setup_environment() {
     [ -z "$_GALAXY_JOB_TMP_DIR" -a ! -f "$_GALAXY_JOB_TMP_DIR" ] || mkdir -p "$_GALAXY_JOB_TMP_DIR"
     [ -z "$_GALAXY_JOB_HOME_DIR" -a ! -f "$_GALAXY_JOB_HOME_DIR" ] || mkdir -p "$_GALAXY_JOB_HOME_DIR"
     if [ "$GALAXY_VIRTUAL_ENV" != "None" -a -f "$GALAXY_VIRTUAL_ENV/bin/activate" \
-         -a "`command -v python`" != "$GALAXY_VIRTUAL_ENV/bin/python" ]; then
+         -a "`command -v python3`" != "$GALAXY_VIRTUAL_ENV/bin/python" ]; then
         . "$GALAXY_VIRTUAL_ENV/bin/activate"
     fi
 }
@@ -57,7 +57,7 @@ export TMP
 export TEMP
 export TMPDIR
 
-GALAXY_PYTHON=`command -v python`
+GALAXY_PYTHON=`command -v python3`
 $prepare_dirs_statement
 cd $working_directory
 $memory_statement

@@ -212,7 +212,7 @@ set_conda_exe() {
         CONDA_EXE=$(command -v conda)
         if [ -z "$CONDA_EXE" ]; then
             echo "WARNING: \`python\` is from conda, but the \`conda\` command cannot be found."
-            pydir="$(dirname "$(command -v python)")"
+            pydir="$(dirname "$(command -v python3)")"
             for CONDA_EXE in $pydir/conda $pydir/../../../bin/conda; do
                 [ -x "$CONDA_EXE" ] && break || unset CONDA_EXE
             done

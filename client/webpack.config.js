@@ -351,7 +351,7 @@ module.exports = (env = {}, argv = {}) => {
                     // We explicitly use ipv4 loopback instead of localhost to
                     // avoid ipv6/ipv4 resolution order issues; this should
                     // align with Galaxy's default.
-                    target: process.env.GALAXY_URL || "http://127.0.0.1:8080",
+                    target: process.env.GALAXY_URL || "http://127.0.0.1:8000",
                     secure: process.env.CHANGE_ORIGIN ? !process.env.CHANGE_ORIGIN : true,
                     changeOrigin: !!process.env.CHANGE_ORIGIN,
                     logLevel: "debug",

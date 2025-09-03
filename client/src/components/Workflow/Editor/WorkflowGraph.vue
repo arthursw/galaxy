@@ -6,6 +6,7 @@ import { computed, type PropType, provide, reactive, type Ref, ref, watch, watch
 import { DatatypesMapperModel } from "@/components/Datatypes/model";
 import { useWorkflowStores } from "@/composables/workflowStores";
 import type { TerminalPosition, XYPosition } from "@/stores/workflowEditorStateStore";
+import { useWorkflowNodeInspectorStore } from "@/stores/workflowNodeInspectorStore";
 import type { Step } from "@/stores/workflowStepStore";
 import { assertDefined } from "@/utils/assertions";
 
@@ -21,10 +22,12 @@ import WorkflowComment from "./Comments/WorkflowComment.vue";
 import BoxSelectPreview from "./Tools/BoxSelectPreview.vue";
 import InputCatcher from "./Tools/InputCatcher.vue";
 import ToolBar from "./Tools/ToolBar.vue";
+import DatasetDisplayTable from "@/components/Workflow/Editor/DatasetDisplayTable.vue";
 import WorkflowNode from "@/components/Workflow/Editor/Node.vue";
 import WorkflowEdges from "@/components/Workflow/Editor/WorkflowEdges.vue";
 import WorkflowMinimap from "@/components/Workflow/Editor/WorkflowMinimap.vue";
 import ZoomControl from "@/components/Workflow/Editor/ZoomControl.vue";
+import WorkflowRun from "@/components/Workflow/Run/WorkflowRun.vue";
 
 const emit = defineEmits(["transform", "graph-offset", "onRemove", "scrollTo", "stepClicked"]);
 const props = defineProps({
@@ -39,10 +42,28 @@ const props = defineProps({
     showZoomControls: { type: Boolean, default: true },
     fixedHeight: { type: Number, default: undefined },
     populatedInputs: { type: Boolean, default: false },
+    workflowId: { type: String, default: undefined },
 });
 
-const { stateStore, stepStore } = useWorkflowStores();
+const { stateStore, stepStore, toolbarStore } = useWorkflowStores();
+const inspectorStore = useWorkflowNodeInspectorStore();
+
 const { scale, activeNodeId, draggingPosition, draggingTerminal } = storeToRefs(stateStore);
+const activeStep = computed(() => {
+    if (activeNodeId.value !== null) {
+        return props.steps[activeNodeId.value];
+    }
+    return null;
+});
+const stepWidth = computed(() => {
+    if (activeStep.value) {
+        return inspectorStore.width(activeStep.value);
+    }
+    return 0; // Default when no step is active
+});
+const bottomDockStyle = computed(() => ({
+    width: stepWidth.value > 0 ? `calc(100% - ${stepWidth.value}px)` : '100%'
+}));
 const canvas: Ref<HTMLElement | null> = ref(null);
 
 const elementBounding = useElementBounding(canvas, { windowResize: false, windowScroll: false });
@@ -165,7 +186,7 @@ defineExpose({
 <template>
     <div id="workflow-canvas" class="unified-panel-body workflow-canvas">
         <ZoomControl
-            v-if="props.showZoomControls"
+            v-if="props.showZoomControls && !toolbarStore.runWorkflowVisible && !toolbarStore.datasetTableVisible"
             :zoom-level="scale"
             :pan="transform"
             @onZoom="zoomTo"
@@ -221,8 +242,29 @@ defineExpose({
                     @pan-by="panBy" />
             </div>
         </div>
+        
+        <div v-if="(toolbarStore.datasetTableVisible || toolbarStore.runWorkflowVisible) && props.workflowId" id="bottom-dock" :style="bottomDockStyle">
+            
+            <div v-if="toolbarStore.datasetTableVisible && props.workflowId" class="dataset-table">
+                <DatasetDisplayTable
+                    :workflow-id="props.workflowId"
+                    :active-step-id="activeNodeId"
+                />
+            </div>
+            
+            <div v-if="toolbarStore.runWorkflowVisible && props.workflowId" class="workflow-run">
+                <WorkflowRun
+                    :workflow-id="props.workflowId"
+                    :prefer-simple-form="true"
+                    :request-state="undefined"
+                    :instance="false"
+                    :go-to-invocations-on-run-launch="false" />
+            </div>
+                
+        </div>
+
         <WorkflowMinimap
-            v-if="elementBounding && props.showMinimap"
+            v-if="elementBounding && props.showMinimap && !toolbarStore.runWorkflowVisible && !toolbarStore.datasetTableVisible"
             :steps="steps"
             :comments="comments"
             :viewport-bounds="elementBounding"
@@ -252,6 +294,21 @@ defineExpose({
         width: 100%;
         height: 100%;
         transform-origin: 0 0;
+    }
+    #bottom-dock {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        /* width: 100%; */
+        transform-origin: 0 0;
+        background: white;
+        max-height: 75%;
+        min-height: 40%;
+        overflow: auto;
+        border-color: #bdc6d0;
+        border-width: 1px;
+        border-style: solid;
+        border-radius: 0.5rem 0 0 0.5rem;
     }
 }
 </style>

@@ -36,6 +36,7 @@ interface Props {
     requestState?: WorkflowInvocationRequestInputs;
     instance?: boolean;
     isRerun?: boolean;
+    goToInvocationsOnRunLaunch?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -46,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
     requestState: undefined,
     instance: false,
     isRerun: false,
+    goToInvocationsOnRunLaunch: true,
 });
 
 const loading = ref(true);
@@ -93,7 +95,7 @@ if (props.instance) {
 }
 
 function handleInvocations(incomingInvocations: any) {
-    if (incomingInvocations.length === 1) {
+    if (incomingInvocations.length === 1 && props.goToInvocationsOnRunLaunch) {
         router.push(`/workflows/invocations/${incomingInvocations[0].id}?success=true`);
     } else {
         invocations.value = incomingInvocations;

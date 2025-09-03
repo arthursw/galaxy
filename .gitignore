@@ -192,3 +192,7 @@ involucro
 .DS_Store
 *.rej
 *~
+
+tools/galaxy-image-analysis/
+config/plugins/visualizations/
+draft/
