@@ -94,10 +94,26 @@ class RunnerParams(ParamsWithSpecs):
     def _param_vaildation_error(self, name, value):
         raise Exception(JOB_RUNNER_PARAMETER_VALIDATION_FAILED_MESSAGE % name)
 
+import time
+
+class TimeTracker:
+    def __init__(self):
+        self.last_flag_time = time.perf_counter()
+
+    def show_elapsed(self, message):
+        """Prints the time elapsed since the last method call."""
+        current_time = time.perf_counter()
+        elapsed = current_time - self.last_flag_time
+        print(f"{message}: {elapsed:.4f} seconds")
+        self.last_flag_time = current_time
+
+
 
 class BaseJobRunner:
     runner_name = "BaseJobRunner"
 
+    # Initialize a single tracker object
+    tracker = TimeTracker()
     start_methods = ["_init_monitor_thread", "_init_worker_threads"]
     DEFAULT_SPECS = dict(recheck_missing_job_retries=dict(map=int, valid=lambda x: int(x) >= 0, default=0))
 
@@ -676,7 +692,8 @@ class BaseJobRunner:
                 # Was resubmitted or something - I think we are done with it.
                 if job_state.runner_state_handled:
                     return
-
+            
+            self.tracker.show_elapsed(f"   _finish_or_resubmit_job::job_wrapper.finish")
             job_wrapper.finish(
                 tool_stdout,
                 tool_stderr,
@@ -684,6 +701,7 @@ class BaseJobRunner:
                 check_output_detected_state=check_output_detected_state,
                 job_stdout=job_stdout,
                 job_stderr=job_stderr,
+                time_tracker=self.tracker
             )
         except Exception:
             log.exception(f"({job_id or ''}/{external_job_id or ''}) Job wrapper finish method failed")

@@ -398,6 +398,7 @@ def populate_api_routes(webapp, app):
     )
 
     webapp.mapper.connect("/api/tools/all_requirements", action="all_requirements", controller="tools")
+    webapp.mapper.connect("/api/tools/create_tool_config", action="create_tool_config", controller="tools", conditions=dict(method=["POST"]))
     webapp.mapper.connect("/api/tools/error_stack", action="error_stack", controller="tools")
     webapp.mapper.connect("/api/tools/{id:.+?}/build", action="build", controller="tools")
     webapp.mapper.connect("/api/tools/{id:.+?}/reload", action="reload", controller="tools")

@@ -121,6 +121,23 @@ function onInsertWorkflowSteps(workflowId: string, workflowStepCount: number | u
     emit("onInsertWorkflowSteps", workflowId, workflowStepCount);
 }
 
+async function onCreateNewTool(newToolName: string) {
+    try {
+        // Clear cached tools so fetchTools will re-fetch the full tool list
+        toolStore.saveAllTools([]);
+        // Determine which panel view we need to clear (don't overwrite the empty-string key)
+        const viewToClear = currentPanelView.value || toolStore.defaultPanelView || "";
+        // Clear the actual panel's sections so they will be re-fetched by initializePanel
+        toolStore.saveToolSections(viewToClear, {});
+        // Reset currentPanelView so initializePanel will re-initialize to default/active view
+        currentPanelView.value = "";
+        await initializePanel();
+    } catch (error) {
+        console.error("ToolPanel::onCreateNewTool -", error);
+        errorMessage.value = errorMessageAsString(error);
+    }
+}
+
 watch(
     () => query.value,
     (newQuery) => {
@@ -183,6 +200,7 @@ initializePanel();
                 </div>
             </div>
         </div>
+        <button @click="()=> onCreateNewTool('')">RESET BUTTON</button>
         <ToolBox
             v-if="isPanelPopulated"
             :workflow="props.workflow"
@@ -194,7 +212,9 @@ initializePanel();
             @onInsertTool="onInsertTool"
             @onInsertModule="onInsertModule"
             @onInsertWorkflow="onInsertWorkflow"
-            @onInsertWorkflowSteps="onInsertWorkflowSteps" />
+            @onInsertWorkflowSteps="onInsertWorkflowSteps" 
+            @onCreateNewTool="onCreateNewTool"
+            />
         <div v-else-if="errorMessage" data-description="tool panel error message">
             <b-alert class="m-2" variant="danger" show>
                 {{ errorMessage }}

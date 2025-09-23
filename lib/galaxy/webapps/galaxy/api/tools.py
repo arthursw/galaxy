@@ -441,6 +441,15 @@ class ToolsController(BaseGalaxyAPIController, UsesVisualizationMixin):
         """
 
         return trans.app.toolbox.all_requirements
+    
+    @expose_api
+    def create_tool_config(self, trans: GalaxyWebTransaction, payload, **kwds):
+        """
+        POST /api/tools/create_tool_config
+        Create a tool config.
+        """
+
+        return trans.app.toolbox.create_tool_config(payload.get("name"))
 
     @web.require_admin
     @expose_api

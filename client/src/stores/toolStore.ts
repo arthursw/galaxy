@@ -151,7 +151,9 @@ export const useToolStore = defineStore("toolStore", () => {
 
     async function fetchToolSections(panelView: string) {
         try {
-            if (!toolSections.value[panelView]) {
+            // Re-fetch the panel if we don't have it, or if the stored value is an
+            // empty object (which can happen when code clears a panel by setting {}).
+            if (!toolSections.value[panelView] || Object.keys(toolSections.value[panelView]).length === 0) {
                 loading.value = true;
                 const { data } = await axios.get(`${getAppRoot()}api/tool_panels/${panelView}`);
                 saveToolSections(panelView, data);

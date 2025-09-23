@@ -4,7 +4,7 @@
     <tool file="data_source/diced.xml" />
     <tool file="data_source/upload.xml" />
     <tool file="data_source/ucsc_tablebrowser.xml" />
-    <!-- <tool file="data_source/ucsc_tablebrowser_test.xml" /> -->
+
     <tool file="data_source/ucsc_tablebrowser_archaea.xml" />
     <tool file="data_source/ncbi_datasets.xml" />
     <tool file="data_source/sra.xml" />
@@ -12,14 +12,14 @@
     <tool file="data_source/fly_modencode.xml" />
     <tool file="data_source/intermine.xml" />
     <tool file="data_source/flymine.xml" />
-    <!-- <tool file="data_source/flymine_test.xml" /> -->
+
     <tool file="data_source/modmine.xml" />
     <tool file="data_source/mousemine.xml" />
     <tool file="data_source/ratmine.xml" />
     <tool file="data_source/yeastmine.xml" />
     <tool file="data_source/worm_modencode.xml" />
     <tool file="data_source/wormbase.xml" />
-    <!-- <tool file="data_source/wormbase_test.xml" /> -->
+
     <tool file="data_source/zebrafishmine.xml" />
     <tool file="data_source/eupathdb.xml" />
     <tool file="data_source/hbvar.xml" />
@@ -55,7 +55,7 @@
     <tool file="${model_tools_path}/duplicate_file_to_collection.xml" />
   </section>
   <section id="expression_tools" name="Expression Tools">
-    <tool file="expression_tools/parse_values_from_file.xml"/>
+    <tool file="expression_tools/parse_values_from_file.xml" />
   </section>
   <section id="liftOver" name="Lift-Over">
     <tool file="extract/liftOver_wrapper.xml" />
@@ -93,7 +93,7 @@
     <tool file="stats/filtering.xml" />
     <tool file="filters/sorter.xml" />
     <tool file="filters/grep.xml" />
-    <tool file="filters/grep_1.0.1.xml"/>
+    <tool file="filters/grep_1.0.1.xml" />
     <label id="gff" text="GFF" />
     <tool file="filters/gff/extract_GFF_Features.xml" />
     <tool file="filters/gff/gff_filter_by_attribute.xml" />
@@ -136,24 +136,6 @@
     <tool file="phenotype_association/ldtools.xml" />
     <tool file="phenotype_association/master2pg.xml" />
   </section>
-  <!--
-  <section id="interactivetools" name="Interactive tools">
-    <tool file="interactive/interactivetool_askomics.xml" />
-    <tool file="interactive/interactivetool_bam_iobio.xml" />
-    <tool file="interactive/interactivetool_blobtoolkit.xml" />
-    <tool file="interactive/interactivetool_cellxgene_0.16.2.xml" />
-    <tool file="interactive/interactivetool_cellxgene_1.1.1.xml" />
-    <tool file="interactive/interactivetool_ethercalc.xml" />
-    <tool file="interactive/interactivetool_guacamole_desktop.xml" />
-    <tool file="interactive/interactivetool_hicbrowser.xml" />
-    <tool file="interactive/interactivetool_jupyter_notebook_1.0.1.xml" />
-    <tool file="interactive/interactivetool_jupyter_notebook_1.0.0.xml" />
-    <tool file="interactive/interactivetool_jupyter_notebook.xml" />
-    <tool file="interactive/interactivetool_neo4j.xml" />
-    <tool file="interactive/interactivetool_openrefine.xml" />
-    <tool file="interactive/interactivetool_phinch.xml" />
-    <tool file="interactive/interactivetool_rstudio.xml" />
-    <tool file="interactive/interactivetool_rstudio_bioc_3.20.xml" />
-  </section>
-  -->
-</toolbox>
+  <tool file="local_tools/binarize/binarize.xml" />
+  <tool file="local_tools/solarize/solarize.xml" />
+<tool file="local_tools/custom_splitchannels/custom_splitchannels.xml" /><tool file="local_tools/custom_atlas/custom_atlas.xml" /><tool file="local_tools/custom_cellpose/custom_cellpose.xml" /><tool file="local_tools/custom_connected components/custom_connected components.xml" /><tool file="local_tools/custom_label overlaps/custom_label overlaps.xml" /><tool file="local_tools/custom_average label overlaps/custom_average label overlaps.xml" /></toolbox>

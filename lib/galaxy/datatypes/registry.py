@@ -230,17 +230,17 @@ class Registry:
                                 for mod in fields:
                                     module = getattr(module, mod)
                                 datatype_class = getattr(module, datatype_class_name)
-                                self.log.debug(
-                                    f"Retrieved datatype module {str(datatype_module)}:{datatype_class_name} from the datatype registry for extension {extension}."
-                                )
+                                # self.log.debug(
+                                #     f"Retrieved datatype module {str(datatype_module)}:{datatype_class_name} from the datatype registry for extension {extension}."
+                                # )
                             except Exception:
                                 self.log.exception("Error importing datatype module %s", str(datatype_module))
                     elif type_extension is not None:
                         try:
                             datatype_class = self.datatypes_by_extension[type_extension].__class__
-                            self.log.debug(
-                                f"Retrieved datatype module {str(datatype_class.__name__)} from type_extension {type_extension} for extension {extension}."
-                            )
+                            # self.log.debug(
+                            #     f"Retrieved datatype module {str(datatype_class.__name__)} from type_extension {type_extension} for extension {extension}."
+                            # )
                         except Exception:
                             self.log.exception(
                                 "Error determining datatype_class for type_extension %s", str(type_extension)
@@ -588,7 +588,7 @@ class Registry:
                                         for compressed_sniffer in compressed_sniffers[aclass]:
                                             self.sniff_order.append(compressed_sniffer)
                                     self.sniff_order.append(aclass())
-                                    self.log.debug(f"Loaded sniffer for datatype '{dtype}'")
+                                    # self.log.debug(f"Loaded sniffer for datatype '{dtype}'")
                                 # Processing the new sniffer elem is now complete, so make sure the element defining it is loaded if necessary.
                                 sniffer_class = elem.get("type")
                                 if sniffer_class is not None and sniffer_class not in sniffer_elem_classes:

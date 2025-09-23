@@ -2,11 +2,13 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import axios from "axios";
 import { storeToRefs } from "pinia";
 import { computed, type ComputedRef, type PropType, type Ref, ref } from "vue";
 
 import { useGlobalUploadModal } from "@/composables/globalUploadModal";
 import { useToolRouting } from "@/composables/route";
+import { getAppRoot } from "@/onload/loadConfig";
 import type { Tool, ToolSection as ToolSectionType } from "@/stores/toolStore";
 import { useToolStore } from "@/stores/toolStore";
 import localize from "@/utils/localization";
@@ -26,6 +28,7 @@ const emit = defineEmits<{
     (e: "update:panel-query", query: string): void;
     (e: "onInsertTool", toolId: string, toolName: string): void;
     (e: "onInsertModule", moduleName: string, moduleTitle: string | undefined): void;
+    (e: "onCreateNewTool", newToolName: string): void;
 }>();
 
 const props = defineProps({
@@ -111,6 +114,40 @@ const localSectionsById = computed(() => {
 
 const toolsList = computed(() => Object.values(localToolsById.value));
 
+const showCreateModal = ref(false);
+const newToolName = ref("");
+const createError = ref<string | null>(null);
+const validToolName = computed(() => {
+    const name = newToolName.value || "";
+    const exists = toolsList.value.some(element => element.id === newToolName.value);
+    // allow alphanumeric, underscore, space, hyphen, dot
+    return /^[\w \-.]+$/.test(name) && name.trim().length > 0 && !exists;
+});
+
+function onToolNameInput(val: string) {
+    // remove any characters that aren't allowed as the user types
+    newToolName.value = (val || "").replace(/[^\w \-.]/g, "");
+    createError.value = null;
+}
+
+async function confirmCreateTool() {
+    if (!validToolName.value) {
+        createError.value = "Invalid tool name";
+        return;
+    }
+    try {
+        const url = `${getAppRoot()}api/tools/create_tool_config/`;
+        await axios.post(url, { name: newToolName.value });
+        // success - close modal and reset
+        emit("onCreateNewTool", newToolName.value);
+        showCreateModal.value = false;
+        newToolName.value = "";
+    } catch (e) {
+        // basic error reporting - keep modal open so user can retry
+        createError.value = (e as Error).message || "Failed to create tool";
+    }
+}
+
 /**
  * If not searching or no results, we show all tools in sections (default)
  *
@@ -187,6 +224,10 @@ function onSectionFilter(filter: string) {
 function onToggle() {
     showSections.value = !showSections.value;
 }
+
+function onCreateTool() {
+    showCreateModal.value = true;
+}
 </script>
 
 <template>
@@ -260,6 +301,28 @@ function onToggle() {
                     </div>
                 </div>
             </div>
+
+            <b-button size="sm" @click="onCreateTool">Create tool</b-button>
+
+            <b-modal id="create-tool-modal" v-model="showCreateModal" title="Create tool">
+                <template v-slot:modal-title>
+                    <h2 class="mb-0">Tool name</h2>
+                </template>
+                <div class="mb-2">
+                    <!-- <label class="d-block">Tool name</label> -->
+                    <b-form-input
+                        v-model="newToolName"
+                        placeholder="Enter tool name"
+                        @input="onToolNameInput($event)"
+                    />
+                    <small v-if="createError" class="text-danger">{{ createError }}</small>
+                    <small v-else class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>
+                </div>
+                <template v-slot:modal-footer>
+                    <b-button variant="secondary" @click="showCreateModal = false">Cancel</b-button>
+                    <b-button variant="primary" :disabled="!validToolName" @click="confirmCreateTool">Create</b-button>
+                </template>
+            </b-modal>
         </div>
     </div>
 </template>

@@ -299,11 +299,12 @@ defineExpose({
         position: absolute;
         bottom: 0;
         left: 0;
+        padding-left: 45px;
         /* width: 100%; */
         transform-origin: 0 0;
         background: white;
         max-height: 75%;
-        min-height: 40%;
+        min-height: 60%;
         overflow: auto;
         border-color: #bdc6d0;
         border-width: 1px;

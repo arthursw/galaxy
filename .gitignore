@@ -196,3 +196,8 @@ involucro
 tools/galaxy-image-analysis/
 config/plugins/visualizations/
 draft/
+
+pixi/
+tools/local_tools
+!tools/local_tools/template.xml
+!tools/local_tools/template.py

@@ -2,9 +2,13 @@ import abc
 import errno
 import logging
 import os
+from pathlib import Path
+import re
+import shutil
 import string
 import time
 from collections import namedtuple
+import xml.etree.ElementTree as ET
 from errno import ENOENT
 from typing import (
     Any,
@@ -37,6 +41,7 @@ from galaxy.util import (
     parse_xml,
     string_as_bool,
     unicodify,
+    galaxy_directory
 )
 from galaxy.util.bunch import Bunch
 from .filters import FilterFactory
@@ -1170,6 +1175,85 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
         if (tool_loaded or force_watch) and self._tool_watcher:
             self._tool_watcher.watch_directory(directory, quick_load)
 
+    def change_tool_id_name(self, tool_config_path, new_tool_id, new_tool_name):
+        """
+        Opens an XML file and changes the 'id' attribute of the first '<tool>' tag.
+
+        Args:
+            tool_config_path (str): The path to the XML file.
+            new_tool_id (str): The new tool ID to set.
+            new_tool_name (str): The new tool name to set.
+        """
+        try:
+            # Parse the XML file
+            tree = ET.parse(tool_config_path)
+            root = tree.getroot()
+
+            # Change the 'id' attribute
+            root.set('id', new_tool_id)
+            root.set('name', new_tool_name)
+
+            # Write the changes back to the file
+            tree.write(tool_config_path)
+            log.debug(f"Successfully updated the tool ID to '{new_tool_id}'.")
+
+        except ET.ParseError as e:
+            log.exception(f"Error parsing the XML file: {e}")
+        except FileNotFoundError:
+            log.exception(f"Error: The file at '{tool_config_path}' was not found.")
+        except Exception as e:
+            log.exception(f"An unexpected error occurred: {e}")
+
+    def add_tool_to_xml(self, tool_conf_path: str, new_tool_path: str):
+        """
+        Adds a <tool> element to an XML file.
+
+        Args:
+            tool_conf_path (str): The path to the XML file.
+            new_tool_path (str): The file path for the new tool to be added.
+        """
+        try:
+            # Parse the existing XML file
+            tree = ET.parse(tool_conf_path)
+            root = tree.getroot()
+
+            # Create a new <tool> element and set its 'file' attribute
+            new_tool = ET.SubElement(root, "tool", attrib={"file":new_tool_path})
+
+            # Write the modified tree back to the file.
+            # The 'pretty_print' option is not available in standard ElementTree,
+            # but we can use 'xml_declaration' and 'encoding' for a clean output.
+            tree.write(tool_conf_path, encoding="utf-8", xml_declaration=True)
+
+        except ET.ParseError as e:
+            log.exception(f"Error parsing XML file: {e}")
+        except Exception as e:
+            log.exception(f"An unexpected error occurred: {e}")
+
+    def create_tool_config(self, tool_name: str):
+        tool_id = "custom_" + re.sub(r'[^\w _\-.]', '_', tool_name.lower())
+        if tool_id in self._tool_versions_by_id:
+            return {"name": tool_name, "id": tool_id}, f"error: tool aleady exists"
+        tools_path = Path(galaxy_directory()) / "tools"
+        local_tools_path = tools_path / "local_tools"
+        local_tool_path = local_tools_path / tool_id
+        local_tool_path.mkdir(parents=True, exist_ok=True)
+        tool_config_path = local_tool_path / f"{tool_id}.xml"
+        shutil.copyfile(local_tools_path / "template.xml", tool_config_path)
+        self.change_tool_id_name(str(tool_config_path), tool_id, tool_name)
+        shutil.copyfile(local_tools_path / "template.py", local_tool_path / f"{tool_id}.py")
+        tool_conf_path = Path(galaxy_directory()) / "config" / "tool_conf.xml"
+        # tool_conf_temp_path = tool_conf_path.with_name("tool_conf_temp.xml")
+        # shutil.copyfile(tool_conf_path, tool_conf_temp_path)
+        self.add_tool_to_xml(str(tool_conf_path), str(tool_config_path.relative_to(tools_path)))
+        # shutil.copyfile(tool_conf_temp_path, tool_conf_path)
+        tool = self.load_tool(str(tool_config_path))
+        self.register_tool(tool)
+        self.__add_tool_to_tool_panel(tool, self._tool_panel, section=False)
+        message = {"name": tool_name, "id": tool.id, "version": tool.version}
+        status = "done"
+        return message, status
+    
     def load_tool(
         self, config_file, guid=None, tool_shed_repository=None, use_cached=False, tool_cache_data_dir=None, **kwds
     ):

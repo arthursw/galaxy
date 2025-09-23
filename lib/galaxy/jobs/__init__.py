@@ -2033,12 +2033,15 @@ class MinimalJobWrapper(HasResourceParameters):
         check_output_detected_state=None,
         remote_metadata_directory=None,
         job_metrics_directory=None,
+        time_tracker=None
     ):
         """
         Called to indicate that the associated command has been run. Updates
         the output datasets based on stderr and stdout from the command, and
         the contents of the output files.
         """
+        if time_tracker:
+            time_tracker.show_elapsed(f"   _finish_or_resubmit_job::job_wrapper.finish")
         finish_timer = self.app.execution_timer_factory.get_timer(
             "internals.galaxy.jobs.job_wrapper_finish", "job_wrapper.finish for job ${job_id} executed"
         )
@@ -2307,6 +2310,9 @@ class MinimalJobWrapper(HasResourceParameters):
         delete_files = cleanup_job == "always" or (job.state == job.states.OK and cleanup_job == "onsuccess")
         self.cleanup(delete_files=delete_files)
         log.debug(finish_timer.to_str(job_id=self.job_id, tool_id=job.tool_id))
+
+        if time_tracker:
+            time_tracker.show_elapsed(f"   FINALLY FINISHED")
 
     def discover_outputs(self, job, inp_data, out_data, out_collections, final_job_state):
         # Try to just recover input_ext and dbkey from job parameters (used and set in
