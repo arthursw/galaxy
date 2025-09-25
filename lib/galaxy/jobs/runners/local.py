@@ -14,10 +14,12 @@ import tempfile
 import threading
 import typing
 from galaxy.jobs.runners.local_legacy import LegacyLocalJobRunner
+from galaxy.jobs.runners.rename_datasets_context import RenameDatasets
 from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
 from wetlands._internal.dependency_manager import Dependencies
 from wetlands.logger import logger
+
 
 
 __all__ = ("LocalJobRunner",)
@@ -65,7 +67,8 @@ class LocalJobRunner(LegacyLocalJobRunner):
         """Initialize the environment manager and the JobRunner"""
         self._environment_manager = EnvironmentManager(debug=True)
         self._environment_lock = threading.Lock()
-        super().__init__(app, nworkers)
+        # Hard code nworkers to debug, but works with multiple workers
+        super().__init__(app, nworkers=1)
 
     def wrap_main(self, script_path: Path) -> Path | None:
         """
@@ -157,9 +160,10 @@ class LocalJobRunner(LegacyLocalJobRunner):
         for r in requirements:
             if r["type"] != "package": continue
             package = r["name"]
-            if "channel" in r:
+            if package is None: continue
+            if "channel" in r and r["channel"] is not None:
                 package = r["channel"] + "::" + package
-            if "version" in r:
+            if "version" in r and r["version"] is not None:
                 package = package + "==" + r["version"]
             conda_deps.append(package)
             
@@ -168,6 +172,10 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
         environment_name = re.sub(r'[^\w _\-.]', '_', job_wrapper.tool.id)
         
+        # job_wrapper.job_io.job.input_datasets[0].dataset.extension
+        # job_wrapper.job_io.get_input_datasets()[0].ext
+        # extra_files_path
+
         # Lock to avoid creating twice the same env (wetlands locks the connection)
         with self._environment_lock:
 
@@ -176,7 +184,9 @@ class LocalJobRunner(LegacyLocalJobRunner):
             self.tracker.show_elapsed("   create env")
             environment = typing.cast(ExternalEnvironment, self._environment_manager.create(environment_name, dependencies))
             
-            if command_parts[0] != "python":
+            command_parts = [cp.strip() for cp in command_parts]
+
+            if not command_parts[0].startswith("python"):
                 return environment
             
             self.tracker.show_elapsed("   launch env")
@@ -190,6 +200,8 @@ class LocalJobRunner(LegacyLocalJobRunner):
             thread = threading.Thread(target=environment_logger.logStdOut, args=[environment.process, stdout_file])
             try:
                 thread.start()
+
+                # with RenameDatasets(job_wrapper.job_io.get_input_datasets(), command_parts[1:]) as args:
                 environment.execute(python_script_path.resolve(), ENTRY_FUNCTION_NAME, (command_parts[1:],))
             except Exception as e:
                 raise e
@@ -212,24 +224,28 @@ class LocalJobRunner(LegacyLocalJobRunner):
         stdout_file = tempfile.NamedTemporaryFile(mode="wb+", suffix="_stdout", dir=job_wrapper.working_directory)
         try:
             if job_wrapper.command_line:
-                command_parts = shlex.split(job_wrapper.command_line)
+                command_parts = shlex.split(job_wrapper.command_line.replace("\\", ""))
 
-                # requirements = job_wrapper.tool.requirements.packages.to_list()
-                # execute_in_wetlands_env = any("channel" in r for r in requirements)
-
-                execute_in_wetlands_env = "execution" in job_wrapper.tool and job_wrapper.tool["execution"] == "wetlands"
+                requirements = job_wrapper.tool.requirements.packages.to_list()
+                execute_in_wetlands_env = any("channel" in r and r["channel"] is not None for r in requirements)
 
                 if job_wrapper.tool.is_workflow_compatible:
-                    if execute_in_wetlands_env and command_parts[0] != "python":
+                    
+                    # For non python job which require a non stard conda channel: create the env and execute with the legacy runner
+                    if execute_in_wetlands_env and not command_parts[0].startswith("python"):
+                        # This just launches the environment, 
+                        # it will activated and used by the legacy runner when executing tool_script.sh
                         environment = self._execute_with_wetlands(job_wrapper, None, command_parts, stdout_file)
                         if environment is not None:
-
+                            
+                            # Rewrite tool_script.sh so that it first activated the env and then execute the command
                             commands = self._environment_manager.commandGenerator.getActivateEnvironmentCommands(environment.name)
-                            commands += job_wrapper.command_line
+                            commands += [" ".join(command_parts)]
                             with open(Path(job_wrapper.working_directory) / "tool_script.sh", "w") as f:
-                                f.writelines(commands)
+                                f.write("\n".join(commands))
+                                # f.writelines(commands)
 
-                    elif command_parts[0] == "python":
+                    elif command_parts[0].startswith("python"):
                         python_script_path = Path(command_parts[1])
                         if python_script_path.exists() and python_script_path.suffix == '.py':
 
@@ -290,6 +306,10 @@ class LocalJobRunner(LegacyLocalJobRunner):
         except Exception as e:
             if stdout_file is not None and not stdout_file.closed:
                 stdout_file.close()
-                raise e
+            log.debug("exception:")
+            log.debug(e)
+            log.exception("failure running job %d", job_wrapper.job_id)
+            self._fail_job_local(job_wrapper, "failure running job")
+            return
                 
         self.queue_job_execute(job_wrapper, process, stdout_file)

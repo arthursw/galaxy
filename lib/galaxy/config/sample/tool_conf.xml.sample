@@ -138,4 +138,10 @@
   </section>
   <tool file="local_tools/binarize/binarize.xml" />
   <tool file="local_tools/solarize/solarize.xml" />
-<tool file="local_tools/custom_splitchannels/custom_splitchannels.xml" /><tool file="local_tools/custom_atlas/custom_atlas.xml" /><tool file="local_tools/custom_cellpose/custom_cellpose.xml" /><tool file="local_tools/custom_connected components/custom_connected components.xml" /><tool file="local_tools/custom_label overlaps/custom_label overlaps.xml" /><tool file="local_tools/custom_average label overlaps/custom_average label overlaps.xml" /></toolbox>
+  <tool file="local_tools/custom_splitchannels/custom_splitchannels.xml" />
+  <tool file="local_tools/custom_atlas/custom_atlas.xml" />
+  <tool file="local_tools/custom_cellpose/custom_cellpose.xml" />
+  <tool file="local_tools/custom_connected_components/custom_connected_components.xml" />
+  <tool file="local_tools/custom_label_overlaps/custom_label_overlaps.xml" />
+  <tool file="local_tools/custom_average_label_overlaps/custom_average_label_overlaps.xml" />
+</toolbox>

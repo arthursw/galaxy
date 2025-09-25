@@ -41,6 +41,7 @@ class ToolRequirement:
         name: str,
         type: Optional[str] = None,
         version: Optional[str] = None,
+        channel: Optional[str] = None,
         specs: Optional[Iterable["RequirementSpecification"]] = None,
     ) -> None:
         if specs is None:
@@ -49,10 +50,11 @@ class ToolRequirement:
         self.type = type
         self.version = version
         self.specs = specs
+        self.channel = channel
 
     def to_dict(self) -> Dict[str, Any]:
         specs = [s.to_dict() for s in self.specs]
-        return dict(name=self.name, type=self.type, version=self.version, specs=specs)
+        return dict(name=self.name, type=self.type, version=self.version, specs=specs, channel=self.channel)
 
     def copy(self) -> "ToolRequirement":
         return copy.deepcopy(self)
@@ -62,8 +64,9 @@ class ToolRequirement:
         version = d.get("version")
         name = d["name"]
         type = d.get("type")
+        channel = d.get("channel")
         specs = [RequirementSpecification.from_dict(s) for s in d.get("specs", [])]
-        return cls(name=name, type=type, version=version, specs=specs)
+        return cls(name=name, type=type, version=version, specs=specs, channel=channel)
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -77,7 +80,7 @@ class ToolRequirement:
         return hash((self.name, self.type, self.version, frozenset(self.specs)))
 
     def __str__(self) -> str:
-        return f"ToolRequirement[{self.name},version={self.version},type={self.type},specs={self.specs}]"
+        return f"ToolRequirement[{self.name},version={self.version},type={self.type},specs={self.specs},channel={self.channel}]"
 
     __repr__ = __str__
 
@@ -355,7 +358,8 @@ def parse_requirements_from_xml(xml_root, parse_resources: bool = False):
         name = xml_text(requirement_elem)
         type = requirement_elem.get("type", DEFAULT_REQUIREMENT_TYPE)
         version = requirement_elem.get("version", DEFAULT_REQUIREMENT_VERSION)
-        requirement = ToolRequirement(name=name, type=type, version=version)
+        channel = requirement_elem.get("channel")
+        requirement = ToolRequirement(name=name, type=type, version=version, channel=channel)
         requirements.append(requirement)
 
     container_elems = []

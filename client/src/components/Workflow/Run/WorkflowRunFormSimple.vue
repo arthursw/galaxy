@@ -442,11 +442,11 @@ async function onExecute() {
             show-details
             :hide-hr="Boolean(showRightPanel)" />
 
-        <div class="overflow-auto h-100">
+        <div class="h-100">
             <div class="d-flex h-100">
                 <div
                     :class="showRightPanel ? 'w-50 flex-grow-1' : 'w-100'"
-                    :style="{ 'overflow-y': 'auto', 'overflow-x': 'hidden' }">
+                    :style="{ 'overflow': 'visible'}">
                     <div v-if="showRightPanel" class="ui-form-header-underlay sticky-top" />
                     <Heading v-if="showRightPanel" class="sticky-top" h2 separator bold size="sm"> Parameters </Heading>
                     <BOverlay :show="changingCurrentHistory" no-fade rounded="sm" opacity="0.5">
