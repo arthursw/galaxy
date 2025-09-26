@@ -13,6 +13,7 @@ import logging
 import numbers
 import operator
 import os
+from pathlib import Path
 import pwd
 import random
 import string
@@ -4630,6 +4631,13 @@ class Dataset(Base, StorableObject, Serializable):
             if self.object_store.exists(self, extra_dir=rel_path, dir_only=True):
                 self.object_store.delete(self, entire_dir=True, extra_dir=rel_path, dir_only=True)
         # TODO: purge metadata files
+        
+        file_path = Path(self.file_path)
+        if file_path is not None:
+            thumbnail_path = Path.home().resolve() / ".galaxy_thumbnails" / f'{file_path.name}.png'
+            if thumbnail_path.exists():
+                thumbnail_path.unlink()
+
         self.deleted = True
         self.purged = True
 

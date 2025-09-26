@@ -528,6 +528,37 @@ class FastAPIDatasets:
     ) -> AsyncTaskResultSummary:
         return self.service.compute_hash(trans, dataset_id, payload, hda_ldda=hda_ldda)
 
+    @router.put(
+        "/api/datasets/{dataset_id}/thumbnail",
+        summary="Generate dataset thumbnail",
+    )
+    def generate_thumbnail(
+        self,
+        dataset_id: HistoryDatasetIDPathParam,
+        trans=DependsOnTrans,
+        hda_ldda: DatasetSourceType = DatasetSourceQueryParam,
+    ) -> None:
+        return self.service.generate_thumbnail(trans, dataset_id, hda_ldda)
+
+    @router.get(
+        "/api/datasets/{dataset_id}/thumbnail",
+        summary="Return dataset thumbnail image (PNG).",
+        response_class=GalaxyFileResponse,
+    )
+    def get_thumbnail(
+        self,
+        dataset_id: HistoryDatasetIDPathParam,
+        trans=DependsOnTrans,
+        hda_ldda: DatasetSourceType = DatasetSourceQueryParam,
+    ) -> GalaxyFileResponse:
+        """
+        Serve the PNG thumbnail corresponding to the dataset's filename.
+        Thumbnails are stored under Path.home() / '.galaxy_thumbnails' and are
+        served with Content-Type 'image/png' so they can be embedded in HTML.
+        """
+        path, headers = self.service.get_thumbnail_for_dataset(trans, dataset_id, hda_ldda)
+        return GalaxyFileResponse(path=cast(str, path), headers=headers)
+
     @router.get(
         "/api/datasets/{dataset_id}/report",
         summary="Return JSON content Galaxy will use to render Markdown reports",

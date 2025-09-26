@@ -23,7 +23,7 @@
           <td>
             <img
               v-if="isImage(dataset.extension)"
-              :src="`${galaxyBaseUrl}${dataset.download_url}`"
+              :src="getThumbnailUrl(dataset)"
               alt="Preview"
               style="width: 80px; height: auto; border: 1px solid #ccc;"
             />
@@ -50,6 +50,8 @@
             >
               Download
             </a>
+
+            <button @click="openInNapari(dataset.id, dataset.file_name)">Open in Napari</button>
           </td>
         </tr>
       </tbody>
@@ -74,12 +76,14 @@
 
 <script lang="ts">
 import axios from "axios";
+import type { StrokeCap } from "vega";
 import type { PropType } from "vue";
 import { defineComponent } from "vue";
 
 interface Dataset {
   id: number | string;
   name: string;
+  file_name?: string;
   extension: string;
   download_url: string;
   data_type: string;
@@ -184,9 +188,26 @@ export default defineComponent({
         );
         const datasetResponses = await Promise.all(datasetPromises);
 
-        this.datasets = datasetResponses
+        // Map responses to dataset objects
+        const tempDatasets = datasetResponses
           .map((res: any) => res.data)
           .filter((d: any) => d && typeof d.id !== "undefined") as Dataset[];
+
+        // For image datasets, ask the server to generate thumbnails if necessary.
+        // We don't fail the whole flow if thumbnail generation fails for a dataset.
+        const generatePromises = tempDatasets.map((d: Dataset) => {
+          const fname = (d as any).file_name || d.name;
+          if (this.isImage(d.extension)) {
+            // Trigger thumbnail generation (server will skip if not needed)
+            return axios
+              .post(`${this.galaxyBaseUrl}/api/datasets/${d.id}/generate_thumbnail/${encodeURIComponent(fname)}`)
+              .catch(() => null);
+          }
+          return Promise.resolve(null);
+        });
+        await Promise.all(generatePromises);
+
+        this.datasets = tempDatasets;
       } catch (err) {
         if (err instanceof Error) {
           this.error = err.message;
@@ -198,6 +219,10 @@ export default defineComponent({
       } finally {
         this.loading = false;
       }
+    },
+    getThumbnailUrl(dataset: Dataset): string {
+      const fname = (dataset as any).file_name || dataset.name;
+      return `${this.galaxyBaseUrl}/api/datasets/${dataset.id}/get_thumbnail/${encodeURIComponent(fname)}`;
     },
     isImage(ext?: string | null): boolean {
       if (!ext) {
@@ -211,6 +236,11 @@ export default defineComponent({
     // closePreview() {
     //   this.previewDataset = null;
     // },
+    openInNapari(dataset_id: string | number, dataset_file_name: string | undefined) {
+      if (dataset_file_name != null) {
+        axios.get(`${this.galaxyBaseUrl}/api/datasets/${dataset_id}/open_image/${encodeURIComponent(dataset_file_name)}`).catch(() => null);
+      }
+    },
   },
 });
 </script>
