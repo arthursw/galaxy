@@ -1,0 +1,22 @@
+<tool id="custom_splitchannels" name="Split Channels" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package" version="0.4.0">giatools</requirement>
+        <requirement type="package" version="0.22.0">scikit-image</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        python '$__tool_directory__/custom_splitchannels.py' '$input' '$c1' '$c2' '$c3'
+    </command>
+    <inputs>
+        <param name="input" type="data" format="png,tiff" label="Image file" />
+    </inputs>
+    <outputs>
+        <data name="c1" format_source="input" metadata_source="input" />
+        <data name="c2" format_source="input" metadata_source="input" />
+        <data name="c3" format_source="input" metadata_source="input" />
+    </outputs>
+    <help>
+
+        **Split channels.**
+
+    </help>
+</tool>

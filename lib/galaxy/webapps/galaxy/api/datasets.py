@@ -556,7 +556,24 @@ class FastAPIDatasets:
         Thumbnails are stored under Path.home() / '.galaxy_thumbnails' and are
         served with Content-Type 'image/png' so they can be embedded in HTML.
         """
-        path, headers = self.service.get_thumbnail_for_dataset(trans, dataset_id, hda_ldda)
+        path, headers = self.service.get_thumbnail(trans, dataset_id, hda_ldda)
+        return GalaxyFileResponse(path=cast(str, path), headers=headers)
+
+    @router.get(
+        "/api/datasets/{dataset_id}/open_image",
+        summary="Open Image in Napari.",
+        response_class=GalaxyFileResponse,
+    )
+    def open_image(
+        self,
+        dataset_id: HistoryDatasetIDPathParam,
+        trans=DependsOnTrans,
+        hda_ldda: DatasetSourceType = DatasetSourceQueryParam,
+    ) -> GalaxyFileResponse:
+        """
+        Open the image in Napari.
+        """
+        path, headers = self.service.open_image(trans, dataset_id, hda_ldda)
         return GalaxyFileResponse(path=cast(str, path), headers=headers)
 
     @router.get(

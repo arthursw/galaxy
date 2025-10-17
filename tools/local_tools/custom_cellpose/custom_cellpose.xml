@@ -1,0 +1,46 @@
+<tool id="cellpose_segmentation" name="Cellpose segmentation" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package" version="4.0.5">cellpose</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        python '$__tool_directory__/custom_cellpose.py'
+        --input_image '$input_image'
+        --segmentation '$segmentation'
+        --use_gpu '$use_gpu'
+        --channel_axis '$channel_axis'
+        --z_axis '$z_axis'
+        --diameter '$diameter'
+        --flow_threshold '$flow_threshold'
+        --cellprob_threshold '$cellprob_threshold'
+        --do_3D '$do_3D'
+        --flow3D_smooth '$flow3D_smooth'
+        --min_size '$min_size'
+        --max_size_fraction '$max_size_fraction'
+        --niter '$niter'
+    </command>
+    <inputs>
+        <param name="input_image" type="data" format="png,tiff,jpg" label="Input image file" />
+        <param name="use_gpu" type="boolean" truevalue="True" falsevalue="False" checked="false" label="Use GPU" />
+        <param name="channel_axis" type="integer" value="" optional="true" label="Channel axis" help="If None, channel dimension is automatically determined." />
+        <param name="z_axis" type="integer" value="" optional="true" label="Z axis" help="If None, 2D assumed." />
+        <param name="diameter" type="float" value="" optional="true" label="Cell diameter (pixels)" />
+        <param name="flow_threshold" type="float" value="0.4" label="Flow error threshold" />
+        <param name="cellprob_threshold" type="float" value="0.0" label="Cell probability threshold" />
+        <param name="do_3D" type="boolean" truevalue="True" falsevalue="False" checked="false" label="Run 3D segmentation" />
+        <param name="flow3D_smooth" type="integer" value="0" label="Flow3D smoothing (stddev)" />
+        <param name="min_size" type="integer" value="15" label="Minimum ROI size (pixels)" />
+        <param name="max_size_fraction" type="float" value="0.4" label="Maximum ROI size fraction" />
+        <param name="niter" type="integer" value="" optional="true" label="Number of iterations (if None, auto)" />
+    </inputs>
+    <outputs>
+        <data name="segmentation" format="tiff" label="Cellpose segmentation" />
+    </outputs>
+    <help>
+        **Cellpose Segmentation**
+
+        This tool runs Cellpose (v4.0.5) segmentation on the provided input image.
+
+        You can control GPU usage, 2D/3D mode, diameter estimation and thresholds.
+
+    </help>
+</tool>

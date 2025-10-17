@@ -63,7 +63,7 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
     runner_name = "WetlandsRunner"
 
-    def __init__(self, app, nworkers):
+    def __init__(self, app, nworkers=1):
         """Initialize the environment manager and the JobRunner"""
         self._environment_manager = EnvironmentManager(debug=True)
         self._environment_lock = threading.Lock()

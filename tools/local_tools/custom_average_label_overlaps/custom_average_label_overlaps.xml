@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<tool id="count_label_overlaps" name="Count Label Overlaps" version="1.0.0">
+    <description>Count or average number of overlapping labels.</description>
+
+    <requirements>
+        <requirement type="package">pandas</requirement>
+    </requirements>
+
+    <command detect_errors="exit_code">
+        <![CDATA[
+        python3 $__tool_directory__/custom_average_label_overlaps.py \
+            --input_csv '${input_csv}' \
+            --output_csv '${output_csv}' \
+            #if str($label1_min) != '' and str($label1_min) != 'None':
+                --label1_min '${label1_min}'
+            #end if
+            #if str($label1_max) != '' and str($label1_max) != 'None':
+                --label1_max '${label1_max}'
+            #end if
+            #if $average:
+                --average
+            #end if
+        ]]>
+    </command>
+
+    <inputs>
+        <param name="input_csv" type="data" format="csv" label="Input CSV (from Label Overlaps tool)"/>
+        <param name="label1_min" type="float" optional="true" label="Minimum label1 to keep" help="Leave blank for no minimum"/>
+        <param name="label1_max" type="float" optional="true" label="Maximum label1 to keep" help="Leave blank for no maximum"/>
+        <param name="average" type="boolean" checked="false" label="Compute average number of label2 per label1 instead of counts per label1"/>
+    </inputs>
+
+    <outputs>
+        <data name="output_csv" format="csv" label="Counts or averages of overlapping labels"/>
+    </outputs>
+
+    <help><![CDATA[
+This tool counts or averages the number of overlapping label2 per label1 based on the CSV output of the *Label Overlaps* tool.
+
+**Inputs:**
+- CSV file containing at least `image1`, `label1`, and `label2` columns.
+- Optional minimum and maximum for `label1`.
+- Optional boolean to compute average instead of per-label counts.
+
+**Output:**
+- A CSV with either:
+  - Columns: `image1`, `label1`, `label2_count` (counts per label1)
+  - or Columns: `image1`, `average_number_of_label2_per_label1` (averages per image)
+
+    ]]></help>
+
+    <citations/>
+</tool>

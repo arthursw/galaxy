@@ -1,0 +1,73 @@
+<tool id="scale_image" name="Scale image" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="20.05"> 
+    <description>with scikit-image</description>
+    <macros>
+        <import>tests.xml</import>
+        <token name="@TOOL_VERSION@">0.18.3</token>
+        <token name="@VERSION_SUFFIX@">2</token>
+    </macros>
+    <creator>
+        <organization name="Biomedical Computer Vision Group, Heidelberg Universtiy" alternateName="BMCV" url="http://www.bioquant.uni-heidelberg.de/research/groups/biomedical_computer_vision.html" />
+    </creator>
+    <xrefs>
+        <xref type="bio.tools">scikit-image</xref>
+        <xref type="biii">scikit-image</xref>
+    </xrefs>
+    <requirements>
+        <requirement type="package" version="@TOOL_VERSION@">scikit-image</requirement>
+        <requirement type="package" version="10.0.1">pillow</requirement>
+        <requirement type="package" version="1.24.4">numpy</requirement>
+        <requirement type="package" version="2021.7.2">tifffile</requirement>
+        <requirement type="package" version="0.1">giatools</requirement>
+    </requirements> 
+    <command detect_errors="aggressive"><![CDATA[
+
+        python '$__tool_directory__/scale_image.py' '$input'
+        ./output
+        --scale '$scale'
+        --order  $order
+        $antialias
+
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="png,tiff" label="Image file"/>
+        <param argument="--scale" type="text" value="1" label="Scaling factor" help="Use either a single scaling factor (uniform scaling), or a comma-separated list of scaling factors (anistropic scaling). For a 2-D single-channel or RGB image, the first scaling factor corresponds to the image width and the second corresponds to the image height. For images with 3 or more axes, the last axis is assumed to correspond to the image channels if uniform scaling is used (a single value)."/>
+        <param argument="--order" type="select" label="Interpolation method">
+            <option value="0">Nearest-neighbor</option>
+            <option value="1" selected="true">Bi-linear</option>
+            <option value="2">Bi-cubic</option>
+        </param>
+        <param name="antialias" type="boolean" truevalue="--antialias" falsevalue="" checked="true" label="Enable anti-aliasing" help="This should only be used for down-scaling."/>
+    </inputs>
+    <outputs>
+        <data name="output" from_work_dir="output" format_source="input" metadata_source="input"/>
+    </outputs>
+    <tests>
+        <!-- Test PNG, without antialias -->
+        <!-- <test>
+            <param name="input" value="input1_binary_rgb.png"/>
+            <param name="scale" value="0.5"/>
+            <param name="antialias" value="false"/>
+            <param name="order" value="0"/>
+
+            <output name="output" value="uniform_binary.png" ftype="png" compare="image_diff" metric="mae" eps="0.01" pin_labels="0">
+                <assert_contents>
+                    <has_image_n_labels n="2"/>
+                    <yield/>
+                </assert_contents>
+            </output>
+        </test> -->
+
+    </tests>
+    <help>
+
+        **Scales an image using one or more scaling factors.**
+
+        The image is rescaled uniformly along all axes, or anistropically if multiple scale factors are given.
+
+        This operation preserves both the brightness of the image, and the range of values.
+
+    </help>
+    <citations>
+        <citation type="doi">10.1016/j.jbiotec.2017.07.019</citation>
+    </citations>
+</tool>

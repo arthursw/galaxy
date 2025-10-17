@@ -51,7 +51,7 @@
               Download
             </a>
 
-            <button @click="openInNapari(dataset.id, dataset.file_name)">Open in Napari</button>
+            <button @click="openInNapari(dataset.id)">Open in Napari</button>
           </td>
         </tr>
       </tbody>
@@ -83,7 +83,6 @@ import { defineComponent } from "vue";
 interface Dataset {
   id: number | string;
   name: string;
-  file_name?: string;
   extension: string;
   download_url: string;
   data_type: string;
@@ -196,17 +195,15 @@ export default defineComponent({
         // For image datasets, ask the server to generate thumbnails if necessary.
         // We don't fail the whole flow if thumbnail generation fails for a dataset.
         const generatePromises = tempDatasets.map((d: Dataset) => {
-          const fname = (d as any).file_name || d.name;
           if (this.isImage(d.extension)) {
             // Trigger thumbnail generation (server will skip if not needed)
             return axios
-              .post(`${this.galaxyBaseUrl}/api/datasets/${d.id}/generate_thumbnail/${encodeURIComponent(fname)}`)
+              .put(`${this.galaxyBaseUrl}/api/datasets/${d.id}/thumbnail/`)
               .catch(() => null);
           }
           return Promise.resolve(null);
         });
         await Promise.all(generatePromises);
-
         this.datasets = tempDatasets;
       } catch (err) {
         if (err instanceof Error) {
@@ -221,14 +218,13 @@ export default defineComponent({
       }
     },
     getThumbnailUrl(dataset: Dataset): string {
-      const fname = (dataset as any).file_name || dataset.name;
-      return `${this.galaxyBaseUrl}/api/datasets/${dataset.id}/get_thumbnail/${encodeURIComponent(fname)}`;
+      return `${this.galaxyBaseUrl}/api/datasets/${dataset.id}/thumbnail/`;
     },
     isImage(ext?: string | null): boolean {
       if (!ext) {
         return false;
       }
-      return ["png", "jpg", "jpeg", "gif", "tiff"].includes(ext.toLowerCase());
+      return ["png", "jpg", "jpeg", "gif", "tiff", "ome.tiff"].includes(ext.toLowerCase());
     },
     // openPreview(dataset: Dataset) {
     //   this.previewDataset = dataset;
@@ -236,10 +232,8 @@ export default defineComponent({
     // closePreview() {
     //   this.previewDataset = null;
     // },
-    openInNapari(dataset_id: string | number, dataset_file_name: string | undefined) {
-      if (dataset_file_name != null) {
-        axios.get(`${this.galaxyBaseUrl}/api/datasets/${dataset_id}/open_image/${encodeURIComponent(dataset_file_name)}`).catch(() => null);
-      }
+    openInNapari(dataset_id: string | number) {
+      axios.get(`${this.galaxyBaseUrl}/api/datasets/${dataset_id}/open_image/`).catch(() => null);
     },
   },
 });

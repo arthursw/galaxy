@@ -1,0 +1,34 @@
+<tool id="binarize" name="Binarize 2" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package" version="0.4.0">giatools</requirement>
+        <requirement type="package" version="0.22.0">scikit-image</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/scale_image.py' '$input' '$output'
+        --scale '$scale'
+        --order  $order
+        $antialias
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" format="png,tiff" label="Image file"/>
+        <param argument="--scale" type="text" value="1" label="Scaling factor" help="Use either a single scaling factor (uniform scaling), or a comma-separated list of scaling factors (anistropic scaling)."/>
+        <param argument="--order" type="select" label="Interpolation method">
+            <option value="0">Nearest-neighbor</option>
+            <option value="1" selected="true">Bi-linear</option>
+            <option value="2">Bi-cubic</option>
+        </param>
+        <param name="antialias" type="boolean" truevalue="--antialias" falsevalue="" checked="true" label="Enable anti-aliasing" help="This should only be used for down-scaling."/>
+    </inputs>
+    <outputs>
+        <data name="output" format_source="input" metadata_source="input"/>
+    </outputs>
+    <help>
+
+        **Scales an image using one or more scaling factors.**
+
+        The image is rescaled uniformly along all axes, or anistropically if multiple scale factors are given.
+
+        This operation preserves both the brightness of the image, and the range of values.
+
+    </help>
+</tool>

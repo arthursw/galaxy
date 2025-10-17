@@ -326,7 +326,8 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         self.dataset_manager = dataset_manager
 
         self.environment_manager = EnvironmentManager(debug=True)
-        self.thumnail_environment = self.environment_manager.create('thumbnail_generator', {'pip': ["bioio==3.0.0", "pillow==11.1.0"]})
+        self.napari_environment_process = None
+        self.thumnail_environment = self.environment_manager.create('convert_image', {'pip': ["bioio==3.0.0", "pillow==11.1.0", "bioio-ome-zarr", "bioio-ome-tiff", "bioio-ome-tiled-tiff", "bioio-czi", "bioio-imageio", "bioio-tifffile", "bioio-tiff-glob", "bioio-bioformats"]})
         self.thumnail_environment.launch()
         # self.launch_napari()
 
@@ -565,10 +566,9 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         return async_task_summary(result)
 
     def queue_generate_thumbnail(self, dataset, galaxy_root_dir):
-        file_path = Path(dataset.file_name)
-        thumbnail_path = Path.home().resolve() / ".galaxy_thumbnails" / f'{file_path.name}.png'
-        results = self.thumnail_environment.execute('thumbnail_generator', 'queue_generate_thumbnail', (file_path, thumbnail_path))
-        return results
+        file_path = Path(dataset.get_file_name()).resolve()
+        thumbnail_path = (Path.home().resolve() / ".galaxy_thumbnails" / f'{file_path.name}.png').resolve()
+        self.thumnail_environment.execute('thumbnail_generator', 'queue_generate_thumbnail', (str(file_path), dataset.ext, str(thumbnail_path)))
     
     def generate_thumbnail(
         self,
@@ -580,9 +580,9 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         dataset = dataset_manager.get_accessible(dataset_id, trans.user)
         self.queue_generate_thumbnail(dataset, trans.app.config.root)
 
-    def get_thumbnail(self, trans: ProvidesHistoryContext, file_path: str):
+    def get_thumbnail_from_file_path(self, file_path: str):
         """
-        Return the thumbnail file located under Path.home() / '.galaxy_thumbnails'
+        Return the thumbnail file located under Path.home() / '.galaxy_thumbnails'`
         for the given file_path. Only the basename of file_path is used to
         avoid path traversal. Returns a tuple of (path, headers) similar to
         other service methods that return files.
@@ -621,7 +621,7 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         dataset_manager = self.dataset_manager_by_type[hda_ldda]
         dataset = dataset_manager.get_accessible(dataset_id, trans.user)
         file_path = dataset.get_file_name()
-        return self.get_thumbnail(trans, file_path)
+        return self.get_thumbnail_from_file_path(file_path)
     
     def try_open_image_in_napari(self, path, removeExistingImages):
         self.launch_napari()

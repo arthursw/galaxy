@@ -1,0 +1,53 @@
+<tool id="custom_atlas" name="Atlas" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package" version="v1.0.3" channel="bioimageit">atlas</requirement>
+    </requirements>
+    <command detect_errors="exit_code">
+        <![CDATA[
+        
+        [ -f '$__tool_directory__/blobs.txt' ] && echo "Blobsref file exists" || (echo "Run Blobsref" && blobsref -o '$__tool_directory__/blobs.txt');
+
+        
+        atlas \
+            -i '$input_image' \
+            -o 'output_image.tif'
+            -rad '$gaussian_std' \
+            -pval '$p_value' \
+            -arealim '$area_lim' \
+            -ref '$__tool_directory__/blobs.txt' \
+            #if $verbose
+                -v true
+            #else
+                -v false
+            #end if \
+        ]]>
+    </command>
+    <inputs>
+        <!-- input_image -->
+        <param name="input_image" type="data" format="png,tiff" label="The input image path" help="The width and height of the image should be even for best results." />
+
+        <!-- gaussian_std -->
+        <param name="gaussian_std" type="integer" value="60" label="Standard deviation of the Gaussian window" help="0 for global threshold." />
+
+        <!-- p_value -->
+        <param name="p_value" type="float" value="0.001" label="P-value" help="P-value to account for the probability of false detection." />
+
+        <!-- area_lim -->
+        <param name="area_lim" type="float" value="0" label="Area limit" help="Remove detections smaller than this area." />
+
+        <!-- verbose -->
+        <param name="verbose" type="boolean" checked="false" label="Verbose mode" />
+    </inputs>
+
+    <outputs>
+       <data format="tiff" name="output_image" from_work_dir="output_image.tif" format_source="input_image" metadata_source="input_image" label="Output image"/>
+        <!-- <data name="output_image" format_source="input_image" metadata_source="input_image" label="Output image" /> -->
+    </outputs>
+    <help>
+        **Adaptive spot detection with optimal scale selection (ATLAS).**
+
+        Basset, Boulanger, Salamero, Bouthemy, and Kervrann.  
+        Adaptive spot detection with optimal scale selection.  
+        IEEE Trans. Image Processing, 2015.
+    </help>
+</tool>
