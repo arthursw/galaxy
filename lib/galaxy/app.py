@@ -15,6 +15,10 @@ from typing import (
     Tuple,
 )
 
+from lib.galaxy.napari_launcher import NapariLauncher
+from lib.galaxy.thumbnail_manager import ThumbnailManager
+from wetlands.environment_manager import EnvironmentManager
+
 from beaker.cache import CacheManager
 from beaker.util import parse_cache_config_options
 
@@ -717,8 +721,14 @@ class UniverseApplication(StructuredApp, GalaxyManagerApplication, InstallationT
     model: GalaxyModelMapping
 
     def __init__(self, **kwargs) -> None:
+        self.environment_manager = EnvironmentManager(debug=True)
         startup_timer = ExecutionTimer()
         super().__init__(fsmon=True, **kwargs)
+        
+        
+        self.napari_launcher = NapariLauncher(self.environment_manager)
+        self.thumbnail_manager = ThumbnailManager(self.environment_manager)
+
         self.haltables = [
             ("queue worker", self._shutdown_queue_worker),
             ("file watcher", self._shutdown_watcher),

@@ -15,11 +15,11 @@
     </command>
 
     <inputs>
-        <param name="image" type="data" format="nii1,nii2,nii.gz,mha,nrrd" label="Input image" help="Binary input image"/>
+        <param name="image" type="data" format="tiff" label="Input image" help="Binary input image"/>
     </inputs>
 
     <outputs>
-        <data name="labeled_image" format="nii2" label="Labeled image"/>
+        <data name="labeled_image" format="tiff" label="Labeled image"/>
     </outputs>
 
     <help><![CDATA[

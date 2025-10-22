@@ -25,8 +25,7 @@ from pydantic import (
 )
 from starlette.datastructures import URL
 
-from wetlands.environment_manager import EnvironmentManager
-from wetlands.external_environment import ExternalEnvironment
+from lib.galaxy.model import Dataset, DatasetInstance
 
 from galaxy import (
     exceptions as galaxy_exceptions,
@@ -325,12 +324,6 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         self.data_provider_registry = data_provider_registry
         self.dataset_manager = dataset_manager
 
-        self.environment_manager = EnvironmentManager(debug=True)
-        self.napari_environment_process = None
-        self.thumnail_environment = self.environment_manager.create('convert_image', {'pip': ["bioio==3.0.0", "pillow==11.1.0", "bioio-ome-zarr", "bioio-ome-tiff", "bioio-ome-tiled-tiff", "bioio-czi", "bioio-imageio", "bioio-tifffile", "bioio-tiff-glob", "bioio-bioformats"]})
-        self.thumnail_environment.launch()
-        # self.launch_napari()
-
     def launch_napari(self):
         dependencies = {"python":"3.12", "conda":['conda-forge::napari', 'conda-forge::pyqt'], "pip":[]}
         self.napari_environment: ExternalEnvironment = cast(ExternalEnvironment, self.environment_manager.create('napari', dependencies))
@@ -565,11 +558,6 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         result = compute_dataset_hash.delay(request=request, task_user_id=getattr(trans.user, "id", None))
         return async_task_summary(result)
 
-    def queue_generate_thumbnail(self, dataset, galaxy_root_dir):
-        file_path = Path(dataset.get_file_name()).resolve()
-        thumbnail_path = (Path.home().resolve() / ".galaxy_thumbnails" / f'{file_path.name}.png').resolve()
-        self.thumnail_environment.execute('thumbnail_generator', 'queue_generate_thumbnail', (str(file_path), dataset.ext, str(thumbnail_path)))
-    
     def generate_thumbnail(
         self,
         trans: ProvidesHistoryContext,
@@ -578,36 +566,7 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
     ):
         dataset_manager = self.dataset_manager_by_type[hda_ldda]
         dataset = dataset_manager.get_accessible(dataset_id, trans.user)
-        self.queue_generate_thumbnail(dataset, trans.app.config.root)
-
-    def get_thumbnail_from_file_path(self, file_path: str):
-        """
-        Return the thumbnail file located under Path.home() / '.galaxy_thumbnails'`
-        for the given file_path. Only the basename of file_path is used to
-        avoid path traversal. Returns a tuple of (path, headers) similar to
-        other service methods that return files.
-        """
-        # Use only the basename to avoid accepting directory components from user input.
-        name = Path(file_path).name
-        thumbnail_dir = Path.home().resolve() / ".galaxy_thumbnails"
-        target = (thumbnail_dir / name).resolve()
-
-        # Ensure the resolved target is within the thumbnail directory to prevent
-        # directory traversal via symlinks or crafted paths.
-        try:
-            thumbnail_dir_resolved = thumbnail_dir.resolve()
-            target_relative = target.relative_to(thumbnail_dir_resolved)
-        except Exception:
-            raise galaxy_exceptions.RequestParameterInvalidException("Invalid thumbnail path.")
-
-        if not target.exists() or not target.is_file():
-            raise galaxy_exceptions.ObjectNotFound(f"Could not find thumbnail: {name}")
-
-        headers = {
-            "Content-Type": "image/png",
-            "Content-Disposition": f'inline; filename="{name}"',
-        }
-        return str(target), headers
+        trans.app.thumbnail_manager.queue_generate_thumbnail(dataset, trans.app.config.root)
 
     def get_thumbnail(
         self,
@@ -621,23 +580,8 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         dataset_manager = self.dataset_manager_by_type[hda_ldda]
         dataset = dataset_manager.get_accessible(dataset_id, trans.user)
         file_path = dataset.get_file_name()
-        return self.get_thumbnail_from_file_path(file_path)
+        return trans.app.thumbnail_manager.get_thumbnail_from_file_path(file_path)
     
-    def try_open_image_in_napari(self, path, removeExistingImages):
-        self.launch_napari()
-        try:
-            self.napari_connection.send((str(path), removeExistingImages))
-        except (EOFError, BrokenPipeError) as e:
-            if self.nTries>1:
-                raise e
-            self.nTries += 1
-            self.napari_environment.exit()
-            self.try_open_image_in_napari(path, removeExistingImages)
-
-    def open_image_in_napari(self, path, removeExistingImages):
-        self.nTries = 0
-        self.try_open_image_in_napari(path, removeExistingImages)
-        
     def open_image(
         self,
         trans: ProvidesHistoryContext,
@@ -649,9 +593,9 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         
         """
         dataset_manager = self.dataset_manager_by_type[hda_ldda]
-        dataset = dataset_manager.get_accessible(dataset_id, trans.user)
+        dataset: DatasetInstance = dataset_manager.get_accessible(dataset_id, trans.user)
         file_path = dataset.get_file_name()
-        return self.open_image_in_napari(file_path, remove_existing_images)
+        trans.app.napari_launcher.open_image(file_path, dataset.ext, remove_existing_images)
     
     def replace_image(
         self,

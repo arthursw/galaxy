@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "/Users/amasson/Travail/wetlands/" // Use a path relative to your workspace root or an absolute path
+    ]
+}

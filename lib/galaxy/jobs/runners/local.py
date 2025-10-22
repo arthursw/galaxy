@@ -27,34 +27,45 @@ ENTRY_FUNCTION_NAME = "__galaxy_entry_point__"
 logger.setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
 
-class EnvironmentLogger:
-    def __init__(self):
-        self._stop_event = threading.Event()
+# class EnvironmentLogger:
+#     def __init__(self):
+#         self._stop_event = threading.Event()
 
-    def logStdOut(self, process: subprocess.Popen, file: typing.BinaryIO) -> None:
-        """Logs output from the subprocess until stopped."""
-        if process is None or process.stdout is None:
-            return
-        sel = selectors.DefaultSelector()
-        sel.register(process.stdout, selectors.EVENT_READ)
-
-        try:
-            while not self._stop_event.is_set():
-                for key, _ in sel.select(timeout=0.2):  # check every 200ms
-                    line = typing.cast(io.TextIOWrapper, key.fileobj).readline()
-                    if not line:
-                        return
-                    line = line.strip()
-                    print(line)
-                    # file.write(line + "\n")
-                    file.write((line + "\n").encode("utf-8", errors="replace"))
-                    file.flush()
-        except Exception as e:
-            file.write((f"Exception in logging thread: {e}\n").encode("utf-8", errors="replace"))
-        return
+#     def logStdOut(self, process: subprocess.Popen, file: typing.BinaryIO) -> None:
+#         """Logs output from the subprocess until stopped."""
+#         if process is None or process.stdout is None:
+#             return
+#         sel = selectors.DefaultSelector()
+#         sel.register(process.stdout, selectors.EVENT_READ)
+        
+#         log.debug(f'init LogStdOut from {process.pid}')
+        
+#         # Loop as long as _stop_event is not set:
+#         # Every ~200 ms (timeout=0.2), check if data is available to read.
+#         # If data is available:
+#         # - read one line.
+#         # - If EOF (not line), exit (return).
+#         # Otherwise:
+#         # - Strips and prints the line.
+#         # - Logs it to a file (file.write(...)).
+#         try:
+#             while not self._stop_event.is_set():
+#                 for key, _ in sel.select(timeout=0.2):  # check every 200ms
+#                     line = typing.cast(io.TextIOWrapper, key.fileobj).readline()
+#                     if not line:
+#                         return
+#                     line = line.strip()
+#                     print(line)
+#                     log.debug(line)
+#                     # file.write(line + "\n")
+#                     file.write((line + "\n").encode("utf-8", errors="replace"))
+#                     file.flush()
+#         except Exception as e:
+#             file.write((f"Exception in logging thread: {e}\n").encode("utf-8", errors="replace"))
+#         return
             
-    def stop(self):
-        self._stop_event.set()
+#     def stop(self):
+#         self._stop_event.set()
 
 class LocalJobRunner(LegacyLocalJobRunner):
     """
@@ -65,7 +76,7 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
     def __init__(self, app, nworkers=1):
         """Initialize the environment manager and the JobRunner"""
-        self._environment_manager = EnvironmentManager(debug=True)
+        self._environment_manager = app.environment_manager
         self._environment_lock = threading.Lock()
         # Hard code nworkers to debug, but works with multiple workers
         super().__init__(app, nworkers=1)
@@ -196,18 +207,30 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
             self.tracker.show_elapsed("   execute env")
             log.debug(f"Execute {python_script_path} in {environment_name} with args {command_parts[2:]}")
-            environment_logger = EnvironmentLogger()
-            thread = threading.Thread(target=environment_logger.logStdOut, args=[environment.process, stdout_file])
-            try:
-                thread.start()
+            # environment_logger = EnvironmentLogger()
 
+            def processStdOut(environment, stdout_file):
+                while True:
+                    line = environment.loggingQueue.get()
+                    if line is None:
+                        break
+                    line = line.strip()
+                    log.debug(line)
+                    stdout_file.write((line + "\n").encode("utf-8", errors="replace"))
+                    stdout_file.flush()
+
+            # logging_thread = threading.Thread(target=environment_logger.logStdOut, args=[environment.process, stdout_file])
+            logging_thread = threading.Thread(target=processStdOut, args=[environment, stdout_file])
+            
+            try:
+                logging_thread.start()
                 # with RenameDatasets(job_wrapper.job_io.get_input_datasets(), command_parts[1:]) as args:
                 environment.execute(python_script_path.resolve(), ENTRY_FUNCTION_NAME, (command_parts[1:],))
             except Exception as e:
                 raise e
             finally:
-                environment_logger.stop()
-                thread.join()
+                environment.loggingQueue.put(None)
+                logging_thread.join()
             log.debug(f"Execution done")
 
             self.tracker.show_elapsed("   execution finished")

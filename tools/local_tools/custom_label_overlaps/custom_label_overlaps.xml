@@ -18,8 +18,8 @@
     </command>
 
     <inputs>
-        <param name="label1" type="data" format="nii1,nii2,nii.gz,mha,nrrd,tiff" label="Input label image 1"/>
-        <param name="label2" type="data" format="nii1,nii2,nii.gz,mha,nrrd,tiff" label="Input label image 2"/>
+        <param name="label1" type="data" format="tiff" label="Input label image 1"/>
+        <param name="label2" type="data" format="tiff" label="Input label image 2"/>
     </inputs>
 
     <outputs>

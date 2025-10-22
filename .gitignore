@@ -126,7 +126,7 @@ tool_test_output.json
 # Project files
 *.kpf
 .idea
-.vscode
+# .vscode
 client/**/jsconfig.json
 vetur.config.js
 .pre-commit-config.yaml
