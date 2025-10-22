@@ -1,11 +1,64 @@
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import List, Dict, Union, Optional
+from collections import defaultdict
+import re
+import shlex
+import tempfile
+import threading
 
 try:
     from Cheetah.Template import Template
 except ImportError:
     raise ImportError("Please install cheetah: pip install cheetah3")
+
+try:
+    from wetlands.environment_manager import EnvironmentManager
+    from wetlands.external_environment import ExternalEnvironment
+    from wetlands._internal.dependency_manager import Dependencies
+    WETLANDS_AVAILABLE = True
+except ImportError:
+    print("Warning: Wetlands not available. Commands will be executed directly using os.system()")
+    WETLANDS_AVAILABLE = False
+
+
+# ============================================================================
+# Collection Mapping Data Structures
+# ============================================================================
+
+class CollectionElement:
+    """Represents a single element in a dataset collection.
+    
+    Tracks the element identifier (for matching across workflow branches)
+    and the actual file path.
+    """
+    
+    def __init__(self, element_identifier: str, dataset_path: str):
+        self.element_identifier = element_identifier
+        self.dataset_path = dataset_path
+    
+    def __repr__(self):
+        return f"CollectionElement(id='{self.element_identifier}', path='{self.dataset_path}')"
+
+
+class DatasetCollection:
+    """Represents a collection of datasets with a specific structure.
+    
+    Mimics Galaxy's dataset collection structure to enable workflow
+    mapping over collections.
+    """
+    
+    def __init__(self, collection_type: str, elements: List[CollectionElement]):
+        self.collection_type = collection_type  # e.g., "list", "paired", "list:paired"
+        self.elements = elements
+    
+    def __repr__(self):
+        return f"DatasetCollection(type='{self.collection_type}', elements={len(self.elements)})"
+    
+    def get_element_identifiers(self) -> List[str]:
+        """Return list of element identifiers in order."""
+        return [e.element_identifier for e in self.elements]
 
 
 def parse_tool_conf(tool_conf_path, galaxy_root):
@@ -71,6 +124,7 @@ class MinimalToolWrapper:
         self.root = self.tree.getroot()
         self.command_template = self._parse_command()
         self.outputs = self._parse_outputs()
+        self.requirements = self._parse_requirements()
     
     def _parse_command(self):
         """Extract the <command> section from tool XML"""
@@ -101,6 +155,26 @@ class MinimalToolWrapper:
                     }
         
         return outputs
+    
+    def _parse_requirements(self):
+        """Extract requirements from tool XML"""
+        requirements = []
+        requirements_elem = self.root.find('requirements')
+        
+        if requirements_elem is not None:
+            for req_elem in requirements_elem.findall('requirement'):
+                req = {
+                    'type': req_elem.get('type', 'package'),
+                    'name': req_elem.text.strip() if req_elem.text else None,
+                    'version': req_elem.get('version'),
+                }
+                # Check for channel attribute (conda-specific)
+                channel = req_elem.get('channel')
+                if channel:
+                    req['channel'] = channel
+                requirements.append(req)
+        
+        return requirements
     
     def build_command(self, params, working_dir=None, output_files=None):
         """
@@ -167,23 +241,349 @@ class MinimalToolWrapper:
         return command
 
 
-def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None):
+# ============================================================================
+# Wetlands Integration
+# ============================================================================
+
+ENTRY_FUNCTION_NAME = "__galaxy_entry_point__"
+
+
+def wrap_main(script_path: Path) -> Path:
     """
-    Execute a Galaxy workflow by extracting and running commands independently
+    Duplicate a Python script and move the code inside
+    'if __name__ == "__main__":' into an entry point function.
+    Adds an invocation right after the block.
+    Safe to run multiple times (idempotent).
+    
+    Returns the path to the new script.
+    """
+    new_path = script_path.with_name(f"{script_path.stem}{ENTRY_FUNCTION_NAME}.py")
+    if new_path.exists():
+        return new_path
+
+    entry_function_call = f"{ENTRY_FUNCTION_NAME}(sys.argv)"
+
+    with open(script_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    main_clause_pattern = re.compile(r'if\s+__name__\s*==\s*(["\'])__main__\1\s*:')
+    main_indices = [i for i, line in enumerate(lines) if main_clause_pattern.match(line.strip())]
+    
+    if len(main_indices) == 0:
+        print(f'  Warning: No \'if __name__ == "__main__":\' clause found. Script cannot be wrapped.')
+        return script_path
+    
+    if len(main_indices) > 1 or lines[main_indices[0]].lstrip() != lines[main_indices[0]]:
+        print(f'  Warning: Found multiple \'if __name__ == "__main__":\' clauses, or the clause is indented. Script cannot be wrapped.')
+        return script_path
+    
+    main_index = main_indices[0]
+    main_call_indices = [i for i, line in enumerate(lines) if line.strip() == entry_function_call]
+    
+    for mci in main_call_indices:
+        if main_index + 1 == mci:
+            print(f"  Script is already wrapped, {entry_function_call} is called at {mci}")
+            return new_path
+
+    # Find the indentation
+    indentation = ""
+    for line in lines[main_index + 1:]:
+        stripped_line = line.strip()
+        if not stripped_line or stripped_line.startswith('#'):
+            continue
+        indentation = line[:len(line) - len(line.lstrip())]
+        break
+    
+    new_lines = lines.copy()
+    end_index = len(lines)
+    
+    new_lines[main_index] = f"import sys\n\ndef {ENTRY_FUNCTION_NAME}(args):\n{indentation}sys.argv = args\n"
+
+    for li in range(main_index + 3, len(lines)):
+        line = lines[li]
+        if len(line.lstrip()) == len(line):
+            end_index = li
+            break
+    
+    new_lines.insert(end_index, f"\nif __name__ == \"__main__\":\n{indentation}{entry_function_call}\n\n")
+
+    with open(new_path, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+
+    return new_path
+
+
+def execute_with_wetlands(environment_manager, tool, command_parts, working_dir):
+    """
+    Execute a command using Wetlands environment manager.
+    
+    Args:
+        environment_manager: EnvironmentManager instance
+        tool: MinimalToolWrapper instance with requirements
+        command_parts: List of command parts (e.g., ['python', 'script.py', 'arg1'])
+        working_dir: Working directory for execution
+        
+    Returns:
+        Tuple of (exit_code, stdout_content)
+    """
+    # Build conda dependencies from tool requirements
+    conda_deps = []
+    for r in tool.requirements:
+        if r["type"] != "package":
+            continue
+        package = r["name"]
+        if package is None:
+            continue
+        if "channel" in r and r["channel"] is not None:
+            package = r["channel"] + "::" + package
+        if "version" in r and r["version"] is not None:
+            package = package + "==" + r["version"]
+        conda_deps.append(package)
+    
+    dependencies = Dependencies({"python": "3.11", "conda": conda_deps, "channels": ["bioconda"]})
+    
+    # Create environment name from tool ID
+    environment_name = re.sub(r'[^\w _\-.]', '_', tool.tool_id)
+    
+    print(f"  Creating/using Wetlands environment: {environment_name}")
+    
+    # Create or get existing environment
+    environment = environment_manager.create(environment_name, dependencies)
+    
+    # Check if it's a Python command
+    if not command_parts[0].startswith("python"):
+        print(f"  Warning: Non-Python command, executing directly: {' '.join(command_parts)}")
+        exit_code = os.system(' '.join(command_parts))
+        return exit_code, ""
+    
+    # Get Python script path
+    python_script_path = Path(command_parts[1])
+    if not python_script_path.exists() or python_script_path.suffix != '.py':
+        print(f"  Warning: Python script not found or invalid, executing directly")
+        exit_code = os.system(' '.join(command_parts))
+        return exit_code, ""
+    
+    # Wrap the script
+    wrapped_script = wrap_main(python_script_path)
+    if wrapped_script == python_script_path:
+        print(f"  Warning: Could not wrap script, executing directly")
+        exit_code = os.system(' '.join(command_parts))
+        return exit_code, ""
+    
+    # Launch environment if not already running
+    if not environment.launched():
+        print(f"  Launching environment...")
+        environment.launch(logOutputInThread=False)
+    
+    # Create stdout capture
+    stdout_content = []
+    
+    def process_stdout(env, output_list):
+        while True:
+            line = env.loggingQueue.get()
+            if line is None:
+                break
+            line = line.strip()
+            print(f"    {line}")
+            output_list.append(line)
+    
+    # Start logging thread
+    logging_thread = threading.Thread(target=process_stdout, args=[environment, stdout_content])
+    
+    try:
+        logging_thread.start()
+        print(f"  Executing script: {wrapped_script.name}")
+        environment.execute(wrapped_script.resolve(), ENTRY_FUNCTION_NAME, (command_parts[1:],))
+        exit_code = 0
+    except Exception as e:
+        print(f"  Error during execution: {e}")
+        exit_code = 1
+    finally:
+        environment.loggingQueue.put(None)
+        logging_thread.join()
+    
+    return exit_code, "\n".join(stdout_content)
+
+
+# ============================================================================
+# Collection Input Parsing and Matching
+# ============================================================================
+
+def load_workflow_inputs(input_json_path: str) -> Dict[str, Union[str, DatasetCollection]]:
+    """Load workflow inputs from JSON file.
+    
+    JSON format:
+    {
+      "inputs": {
+        "0": {
+          "collection_type": "list",
+          "elements": [
+            {"identifier": "image_1", "path": "/path/to/image_1.tif"},
+            {"identifier": "image_2", "path": "/path/to/image_2.tif"}
+          ]
+        },
+        "1": {
+          "path": "/path/to/single_file.txt"
+        }
+      }
+    }
+    
+    Args:
+        input_json_path: Path to JSON file containing workflow inputs
+        
+    Returns:
+        Dict mapping step IDs to either file paths (str) or DatasetCollections
+    """
+    import json
+    
+    with open(input_json_path) as f:
+        data = json.load(f)
+    
+    parsed_inputs = {}
+    for step_id, input_data in data.get("inputs", {}).items():
+        if "collection_type" in input_data:
+            # It's a collection
+            elements = [
+                CollectionElement(e["identifier"], e["path"])
+                for e in input_data["elements"]
+            ]
+            parsed_inputs[step_id] = DatasetCollection(
+                input_data["collection_type"],
+                elements
+            )
+        else:
+            # Single dataset
+            parsed_inputs[step_id] = input_data["path"]
+    
+    return parsed_inputs
+
+
+def match_collections(
+    step_outputs: Dict[str, Dict[str, Union[str, DatasetCollection]]],
+    input_connections: Dict[str, Union[dict, list]]
+) -> List[Dict[str, str]]:
+    """Match multiple input collections by element identifiers.
+    
+    This implements Galaxy's collection matching logic: when a tool receives
+    multiple collection inputs, it must match elements by their identifiers
+    across all collections. This ensures that when workflow branches rejoin,
+    the correct datasets are paired together.
+    
+    Args:
+        step_outputs: Dict of previous step outputs (step_id -> output_name -> data)
+        input_connections: Dict of input connections for current step
+        
+    Returns:
+        List of dicts mapping input names to file paths for each iteration.
+        If no collections are found, returns a single empty dict for one execution.
+        
+    Example:
+        If input_connections has:
+          - 'label1' connected to collection [img1.c1, img2.c1, img3.c1]
+          - 'label2' connected to collection [cell1, cell2, cell3]
+        
+        Returns:
+          [
+            {'label1': 'img1.c1', 'label2': 'cell1'},
+            {'label1': 'img2.c1', 'label2': 'cell2'},
+            {'label1': 'img3.c1', 'label2': 'cell3'}
+          ]
+    """
+    collections_to_match = {}
+    
+    # Identify which inputs are collections
+    for input_name, connection_info in input_connections.items():
+        # Handle both single connection (dict) and multiple connections (list)
+        if isinstance(connection_info, list):
+            # For now, we'll handle the first connection
+            # (multiple connections to same input is a more complex case)
+            if not connection_info:
+                continue
+            connection_info = connection_info[0]
+        
+        source_step_id = str(connection_info.get('id'))
+        source_output_name = connection_info.get('output_name', 'output')
+        
+        if source_step_id in step_outputs:
+            source_data = step_outputs[source_step_id].get(source_output_name)
+            if isinstance(source_data, DatasetCollection):
+                collections_to_match[input_name] = source_data
+    
+    if not collections_to_match:
+        # No collections to match, single execution with no collection params
+        return [{}]
+    
+    # Verify all collections have same element identifiers
+    all_identifiers = None
+    collection_names = list(collections_to_match.keys())
+    
+    for input_name, collection in collections_to_match.items():
+        coll_identifiers = collection.get_element_identifiers()
+        if all_identifiers is None:
+            all_identifiers = coll_identifiers
+        elif coll_identifiers != all_identifiers:
+            raise ValueError(
+                f"Collection element identifiers don't match:\n"
+                f"  {collection_names[0]}: {all_identifiers}\n"
+                f"  {input_name}: {coll_identifiers}\n"
+                f"All collections must have the same element identifiers for mapping."
+            )
+    
+    # Create iteration slices - one per element identifier
+    iteration_slices = []
+    for i, identifier in enumerate(all_identifiers):
+        slice_dict = {}
+        for input_name, collection in collections_to_match.items():
+            slice_dict[input_name] = collection.elements[i].dataset_path
+        slice_dict['__element_identifier__'] = identifier
+        iteration_slices.append(slice_dict)
+    
+    return iteration_slices
+
+
+def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs_json=None, use_wetlands=True):
+    """
+    Execute a Galaxy workflow by extracting and running commands independently.
+    Supports collection mapping for iterating over dataset collections.
     
     Args:
         workflow_file: Path to .ga workflow file
         tool_conf_xml: Path to tool_conf.xml (optional, recommended)
         galaxy_root: Root directory of Galaxy installation (optional, defaults to current working directory)
+        inputs_json: Path to JSON file with workflow inputs (optional)
+        use_wetlands: Whether to use Wetlands for execution (default: True)
         
     If tool_conf_xml is provided, it will be parsed to map tool IDs to XML paths.
     Otherwise, it will attempt to find tool_conf.xml in the galaxy_root.
+    
+    If inputs_json is provided, it should contain dataset paths and collection definitions.
     """
     import json
     
     # Determine galaxy_root
     if galaxy_root is None:
         galaxy_root = os.getcwd()
+    
+    # Initialize EnvironmentManager if Wetlands is available and requested
+    environment_manager = None
+    if use_wetlands and WETLANDS_AVAILABLE:
+        print("Initializing Wetlands EnvironmentManager...")
+        environment_manager = EnvironmentManager(debug=True)
+        print("EnvironmentManager initialized")
+    elif use_wetlands and not WETLANDS_AVAILABLE:
+        print("Warning: Wetlands requested but not available. Falling back to direct execution.")
+    
+    # Create working directory for workflow execution
+    working_dir = Path(galaxy_root) / "workflow_execution"
+    working_dir.mkdir(exist_ok=True)
+    print(f"Working directory: {working_dir}")
+    
+    # Load user inputs if provided
+    user_inputs = {}
+    if inputs_json:
+        print(f"Loading workflow inputs from: {inputs_json}")
+        user_inputs = load_workflow_inputs(inputs_json)
+        print(f"Loaded inputs for {len(user_inputs)} step(s)")
     
     # Try to find and parse tool configuration
     tool_map = {}
@@ -213,8 +613,8 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None):
         return
     
     tool_cache = {}
-    # Track outputs from each step: step_outputs[step_id][output_name] = file_path
-    step_outputs = {}
+    # Track outputs from each step: step_outputs[step_id][output_name] = file_path or DatasetCollection
+    step_outputs: Dict[str, Dict[str, Union[str, DatasetCollection]]] = {}
     
     # Process each step in the workflow
     steps = workflow.get('steps', {})
@@ -226,10 +626,16 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None):
         # Handle data input steps (no tool_id)
         if not tool_id:
             if step_type == 'data_collection_input' or step_type == 'data_input':
-                print(f"Step {step_id}: Input dataset - requires user-provided file path")
-                # For input datasets, we'll need to get the file path from user
-                # Store a placeholder that indicates this needs to be provided
-                step_outputs[step_id] = {'output': 'INPUT_FILE_PLACEHOLDER'}
+                if step_id in user_inputs:
+                    input_data = user_inputs[step_id]
+                    step_outputs[step_id] = {'output': input_data}
+                    if isinstance(input_data, DatasetCollection):
+                        print(f"Step {step_id}: Input collection ({input_data.collection_type}) with {len(input_data.elements)} elements")
+                    else:
+                        print(f"Step {step_id}: Input dataset: {input_data}")
+                else:
+                    print(f"Step {step_id}: Input dataset - requires user-provided file path")
+                    step_outputs[step_id] = {'output': 'INPUT_FILE_PLACEHOLDER'}
             else:
                 print(f"Step {step_id}: No tool_id found (type: {step_type})")
             continue
@@ -268,74 +674,166 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None):
         if tool is None:
             continue
         
-        # Extract parameters from step (tool_state contains the parameter values)
-        params = step.get('tool_state', {})
+        # Extract base parameters from step (tool_state contains the parameter values)
+        base_params = step.get('tool_state', {})
         
         # Convert params if they're stored as JSON string
-        if isinstance(params, str):
+        if isinstance(base_params, str):
             try:
-                params = json.loads(params)
+                base_params = json.loads(base_params)
             except:
-                params = {}
+                base_params = {}
         
         # Ensure params is a dictionary
-        if not isinstance(params, dict):
-            params = {}
+        if not isinstance(base_params, dict):
+            base_params = {}
         
-        # Resolve input connections
+        # Get input connections for collection matching
         input_connections = step.get('input_connections', {})
-        if input_connections:
-            # Replace ConnectedValue placeholders with actual file paths
+        
+        # Match collections - this returns iteration slices
+        iteration_slices = match_collections(step_outputs, input_connections)
+        
+        num_iterations = len(iteration_slices)
+        print(f"\nStep {step_id}: {tool_id}")
+        if num_iterations > 1:
+            print(f"  Collection mapping: {num_iterations} iterations")
+        
+        # Collect output elements across all iterations
+        output_collections: Dict[str, List[CollectionElement]] = defaultdict(list)
+        
+        # Initialize output files dict (for the case of single iteration)
+        iter_output_files = {}
+        
+        # Execute tool once per iteration slice
+        for iter_idx, slice_dict in enumerate(iteration_slices):
+            # Build params for this iteration
+            iter_params = base_params.copy()
+            
+            # Get element identifier for this iteration
+            element_id = slice_dict.get('__element_identifier__', f"element_{iter_idx}")
+            
+            # Resolve input connections for this iteration
             for param_name, connection_info in input_connections.items():
-                # connection_info can be a dict or a list of dicts
-                if isinstance(connection_info, dict):
-                    source_step_id = str(connection_info.get('id'))
-                    source_output_name = connection_info.get('output_name', 'output')
+                # Handle both single connection (dict) and multiple connections (list)
+                conn_info = connection_info
+                if isinstance(connection_info, list):
+                    if not connection_info:
+                        continue
+                    conn_info = connection_info[0]
+                
+                # Check if this input is in the slice (collection input)
+                if param_name in slice_dict:
+                    iter_params[param_name] = slice_dict[param_name]
+                else:
+                    # Non-collection input, resolve normally
+                    source_step_id = str(conn_info.get('id'))
+                    source_output_name = conn_info.get('output_name', 'output')
                     
-                    # Get the output file from the source step
                     if source_step_id in step_outputs:
                         if source_output_name in step_outputs[source_step_id]:
-                            input_file = step_outputs[source_step_id][source_output_name]
-                            params[param_name] = input_file
-                            print(f"  Resolved input '{param_name}' from step {source_step_id}.{source_output_name}: {input_file}")
-                        else:
-                            print(f"  Warning: Output '{source_output_name}' not found in step {source_step_id}")
+                            source_data = step_outputs[source_step_id][source_output_name]
+                            # If source is a collection but this param wasn't in slice,
+                            # we shouldn't be here, but handle gracefully
+                            if isinstance(source_data, DatasetCollection):
+                                print(f"  Warning: Expected collection input '{param_name}' not in slice")
+                            else:
+                                iter_params[param_name] = source_data
+            
+            # Generate output file paths for this iteration
+            # Create output folder for this step
+            step_folder = f"outputs/step{step_id}_{tool_id}"
+
+            iter_output_files = {}
+            for output_name, output_info in tool.outputs.items():
+                output_format = output_info.get('format', 'data')
+                
+                # Check if format should be inherited from format_source
+                format_source = output_info.get('format_source')
+                if format_source and format_source in iter_params:
+                    input_file = iter_params[format_source]
+                    # Extract extension from input file
+                    if isinstance(input_file, str) and '.' in input_file:
+                        output_format = input_file.rsplit('.', 1)[1]
                     else:
-                        print(f"  Warning: Step {source_step_id} outputs not found")
-                elif isinstance(connection_info, list):
-                    # Multiple inputs (e.g., for collections)
-                    input_files = []
-                    for conn in connection_info:
-                        source_step_id = str(conn.get('id'))
-                        source_output_name = conn.get('output_name', 'output')
-                        if source_step_id in step_outputs and source_output_name in step_outputs[source_step_id]:
-                            input_files.append(step_outputs[source_step_id][source_output_name])
-                    params[param_name] = input_files
-        
-        # Generate output file paths for this step
-        output_files = {}
-        for output_name, output_info in tool.outputs.items():
-            output_format = output_info.get('format', 'data')
-            output_file = f"step_{step_id}_{output_name}.{output_format}"
-            output_files[output_name] = output_file
-        
-        # Store outputs for future steps to reference
-        step_outputs[step_id] = output_files
-        
-        # Build and output command
-        try:
-            command = tool.build_command(params, output_files=output_files)
-            print(f"\n{'='*60}")
-            print(f"Step {step_id}: {tool_id}")
-            print(f"Command: {command}")
-            print(f"{'='*60}")
+                        output_format = 'tiff'  # Default for image data
+                elif output_format == 'input' or output_format == 'data':
+                    # If format is 'input' or defaults to 'data', try to infer from any input
+                    for param_name, param_value in iter_params.items():
+                        if isinstance(param_value, str) and '.' in param_value:
+                            # Assume this is an input file
+                            output_format = param_value.rsplit('.', 1)[1]
+                            break
+                    else:
+                        # Keep 'data' as default only if we couldn't infer anything
+                        if output_format == 'data':
+                            output_format = 'tiff'  # Default fallback for image data
+                
+                if num_iterations > 1:
+                    # Multiple iterations - include element identifier
+                    # output_file = f"step_{step_id}_{output_name}_{element_id}.{output_format}"
+                    output_filename = f"{output_name}_{element_id}.{output_format}"
+                else:
+                    # Single iteration
+                    # output_file = f"step_{step_id}_{output_name}.{output_format}"
+                    output_filename = f"{output_name}.{output_format}"
+
+                output_file = f"{step_folder}/{output_filename}"
+                Path(output_file).parent.mkdir(exist_ok=True, parents=True)
+                
+                iter_output_files[output_name] = output_file
+                
+                # Collect for building output collections
+                if num_iterations > 1:
+                    output_collections[output_name].append(
+                        CollectionElement(element_id, output_file)
+                    )
             
-            # Uncomment to actually execute:
-            # exit_code = os.system(command)
-            # print(f"Exit code: {exit_code}")
-            
-        except Exception as e:
-            print(f"Step {step_id} ({tool_id}): Error building command - {e}")
+            # Build and execute command
+            try:
+                command = tool.build_command(iter_params, output_files=iter_output_files)
+                if num_iterations > 1:
+                    print(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}):")
+                    print(f"    Command: {command}")
+                else:
+                    print(f"  Command: {command}")
+                
+                # Execute the command
+                if environment_manager is not None:
+                    # Use Wetlands for execution
+                    command_parts = shlex.split(command)
+                    exit_code, stdout = execute_with_wetlands(
+                        environment_manager, 
+                        tool, 
+                        command_parts, 
+                        working_dir
+                    )
+                    if exit_code != 0:
+                        print(f"    Warning: Command exited with code {exit_code}")
+                else:
+                    # Fall back to direct execution
+                    exit_code = os.system(command)
+                    if exit_code != 0:
+                        print(f"    Warning: Command exited with code {exit_code}")
+                
+            except Exception as e:
+                print(f"  Error building/executing command for iteration {iter_idx + 1}: {e}")
+                continue
+        
+        # Store outputs for future steps
+        step_outputs[step_id] = {}
+        if num_iterations > 1:
+            # Multiple iterations - create collections for outputs
+            for output_name, elements in output_collections.items():
+                step_outputs[step_id][output_name] = DatasetCollection(
+                    collection_type='list',
+                    elements=elements
+                )
+        else:
+            # Single iteration - store as regular files
+            step_outputs[step_id] = iter_output_files
+        
+        print(f"{'='*60}")
 
 
 if __name__ == "__main__":
@@ -346,11 +844,16 @@ if __name__ == "__main__":
         workflow_file = sys.argv[1]
         tool_conf_xml = sys.argv[2] if len(sys.argv) > 2 else None
         galaxy_root = sys.argv[3] if len(sys.argv) > 3 else None
-        execute_workflow(workflow_file, tool_conf_xml, galaxy_root)
+        inputs_json = sys.argv[4] if len(sys.argv) > 4 else None
+        execute_workflow(workflow_file, tool_conf_xml, galaxy_root, inputs_json)
     else:
         # Demo with hardcoded paths
-        print("Usage: python execute_workflow.py <workflow.ga> [tool_conf.xml] [galaxy_root]")
+        print("Usage: python execute_workflow.py <workflow.ga> [tool_conf.xml] [galaxy_root] [inputs.json]")
         print("\nExamples:")
+        print("  # Without collection inputs:")
         print("  python execute_workflow.py /Users/amasson/Desktop/Galaxy-Workflow-MultiFish.ga")
-        print("  python execute_workflow.py /Users/amasson/Desktop/Galaxy-Workflow-MultiFish.ga config/tool_conf.xml.sample")
-        print("  python execute_workflow.py /Users/amasson/Desktop/Galaxy-Workflow-MultiFish.ga config/tool_conf.xml.sample /Users/amasson/Travail/galaxy")
+        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample")
+        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /Users/amasson/Travail/galaxy")
+        print("\n  # With collection inputs:")
+        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /Users/amasson/Travail/galaxy inputs.json")
+        print("\nSee COLLECTION_MAPPING_IMPLEMENTATION.md for inputs.json format")
