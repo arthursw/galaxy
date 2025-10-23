@@ -36,6 +36,8 @@ def main():
 
     print(f'[[2/5]] Read image {args.input_image}')
     link = Path(f'{args.input_image}.tif')
+    if link.exists():
+        link.unlink()
     link.symlink_to(args.input_image)
     image = imread(link)
 
