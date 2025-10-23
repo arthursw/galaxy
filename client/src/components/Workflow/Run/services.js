@@ -58,3 +58,19 @@ export async function getTool(toolId, toolVersion, toolInputs, historyId) {
         rethrowSimple(e);
     }
 }
+
+/**
+ * Execute workflow with Wetlands environment manager.
+ *
+ * @param {String} workflowId - Workflow ID to execute.
+ * @param {Object} wetlandsData - Execution data including inputs and options.
+ */
+export async function executeWorkflowWithWetlands(workflowId, wetlandsData) {
+    const url = `${getAppRoot()}api/workflows/${workflowId}/execute_with_wetlands`;
+    try {
+        const response = await axios.post(url, wetlandsData);
+        return response.data;
+    } catch (e) {
+        rethrowSimple(e);
+    }
+}

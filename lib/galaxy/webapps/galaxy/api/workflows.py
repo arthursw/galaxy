@@ -82,6 +82,8 @@ from galaxy.schema.schema import (
     WorkflowSortByEnum,
 )
 from galaxy.schema.workflows import (
+    ExecuteWithWetlandsPayload,
+    ExecuteWithWetlandsResponse,
     InvokeWorkflowPayload,
     StoredWorkflowDetailed,
 )
@@ -1188,6 +1190,25 @@ class FastAPIWorkflows:
         user: model.User = DependsOnUser,
     ) -> WorkflowLandingRequest:
         return self.landing_manager.get_workflow_landing_request(trans, uuid)
+
+    @router.post(
+        "/api/workflows/{workflow_id}/execute_with_wetlands",
+        name="Execute workflow with Wetlands",
+        summary="Export workflow to .ga file and execute it using Wetlands environment manager.",
+    )
+    def execute_with_wetlands(
+        self,
+        workflow_id: StoredWorkflowIDPathParam,
+        payload: ExecuteWithWetlandsPayload,
+        trans: ProvidesUserContext = DependsOnTrans,
+    ) -> ExecuteWithWetlandsResponse:
+        """
+        Execute a workflow using the Wetlands environment manager.
+
+        This endpoint exports the workflow to a .ga file and then executes it
+        using the execute_workflow module with Wetlands for dependency management.
+        """
+        return self.service.execute_workflow_with_wetlands(trans, workflow_id, payload)
 
 
 StepDetailQueryParam = Annotated[

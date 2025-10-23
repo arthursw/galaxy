@@ -31,16 +31,19 @@ interface Props {
     workflowId: string;
     runDisabled?: boolean;
     runWaiting?: boolean;
+    wetlandsWaiting?: boolean;
     success?: boolean;
     validRerun?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     invocation: undefined,
+    wetlandsWaiting: false,
 });
 
 const emit = defineEmits<{
     (e: "on-execute"): void;
+    (e: "on-execute-wetlands"): void;
 }>();
 
 const { workflow, loading, error, owned } = useWorkflowInstance(props.workflowId);
@@ -172,17 +175,28 @@ async function rerunWorkflow() {
 
                         <slot name="workflow-title-actions" />
                     </GButtonGroup>
-                    <ButtonSpinner
-                        v-if="!props.invocation"
-                        id="run-workflow"
-                        class="text-nowrap"
-                        data-description="execute workflow button"
-                        :wait="runWaiting"
-                        :disabled="runDisabled"
-                        size="small"
-                        :tooltip="executeButtonTooltip"
-                        :title="!props.validRerun ? 'Run Workflow' : 'Rerun Workflow'"
-                        @onClick="emit('on-execute')" />
+                    <GButtonGroup v-if="!props.invocation">
+                        <ButtonSpinner
+                            id="run-workflow"
+                            class="text-nowrap"
+                            data-description="execute workflow button"
+                            :wait="runWaiting"
+                            :disabled="runDisabled"
+                            size="small"
+                            :tooltip="executeButtonTooltip"
+                            :title="!props.validRerun ? 'Run Workflow' : 'Rerun Workflow'"
+                            @onClick="emit('on-execute')" />
+                        <ButtonSpinner
+                            id="run-workflow-wetlands"
+                            class="text-nowrap"
+                            data-description="execute workflow with wetlands button"
+                            :wait="wetlandsWaiting"
+                            :disabled="runDisabled"
+                            size="small"
+                            tooltip="Execute this workflow using Wetlands environment manager"
+                            title="Run with Wetlands"
+                            @onClick="emit('on-execute-wetlands')" />
+                    </GButtonGroup>
                     <GButtonGroup v-else>
                         <GButton
                             title="Run Workflow"

@@ -18,7 +18,7 @@ import { provideScopedWorkflowStores } from "@/composables/workflowStores";
 import { useHistoryStore } from "@/stores/historyStore";
 import { errorMessageAsString } from "@/utils/simple-error";
 
-import { invokeWorkflow } from "./services";
+import { executeWorkflowWithWetlands, invokeWorkflow } from "./services";
 
 import WorkflowAnnotation from "../WorkflowAnnotation.vue";
 import WorkflowNavigationTitle from "../WorkflowNavigationTitle.vue";
@@ -69,6 +69,7 @@ const splitObjectStore = ref(false);
 const preferredObjectStoreId = ref<string | null>(null);
 const preferredIntermediateObjectStoreId = ref<string | null>(null);
 const waitingForRequest = ref(false);
+const waitingForWetlandsRequest = ref(false);
 const showRightPanel = ref<"help" | "graph" | null>(null);
 const checkInputMatching = ref(props.requestState !== undefined);
 
@@ -322,6 +323,45 @@ async function onExecute() {
         waitingForRequest.value = false;
     }
 }
+
+async function onExecuteWithWetlands() {
+    waitingForWetlandsRequest.value = true;
+
+    const replacementParams: Record<string, any> = {};
+    const inputs: Record<string, any> = {};
+    for (const inputName in formData.value) {
+        const value = formData.value[inputName];
+        const inputType = inputTypes.value[inputName];
+        if (inputType == "replacement_parameter") {
+            replacementParams[inputName] = value;
+        } else if (inputType && isWorkflowInput(inputType)) {
+            inputs[inputName] = value;
+        }
+    }
+
+    const data: Record<string, any> = {
+        inputs_json: inputs,
+        dry_run: false,
+    };
+
+    try {
+        const result = await executeWorkflowWithWetlands(props.model.workflowId, data);
+
+        if (result.execution_status === "success") {
+            emit("submissionSuccess", {
+                message: result.message,
+                workflow_file: result.workflow_file,
+                outputs: result.outputs,
+            });
+        } else {
+            emit("submissionError", result.message);
+        }
+    } catch (error) {
+        emit("submissionError", errorMessageAsString(error));
+    } finally {
+        waitingForWetlandsRequest.value = false;
+    }
+}
 </script>
 
 <template>
@@ -339,8 +379,10 @@ async function onExecute() {
                     :workflow-id="model.runData.workflow_id"
                     :run-disabled="hasValidationErrors || !canRunOnHistory"
                     :run-waiting="waitingForRequest"
+                    :wetlands-waiting="waitingForWetlandsRequest"
                     :valid-rerun="isValidRerun"
-                    @on-execute="onExecute">
+                    @on-execute="onExecute"
+                    @on-execute-wetlands="onExecuteWithWetlands">
                     <template v-slot:workflow-title-actions>
                         <GButtonGroup>
                             <GButton
