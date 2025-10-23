@@ -136,7 +136,7 @@ class MinimalToolWrapper:
         """Extract output definitions from tool XML"""
         outputs = {}
         outputs_elem = self.root.find('outputs')
-        
+
         if outputs_elem is not None:
             for data_elem in outputs_elem.findall('data'):
                 output_name = data_elem.get('name')
@@ -147,8 +147,9 @@ class MinimalToolWrapper:
                         'format': data_elem.get('format', 'data'),
                         'format_source': data_elem.get('format_source'),
                         'metadata_source': data_elem.get('metadata_source'),
+                        'from_work_dir': data_elem.get('from_work_dir'),
                     }
-        
+
         return outputs
     
     def _parse_requirements(self):
@@ -540,6 +541,60 @@ def match_collections(
     return iteration_slices
 
 
+def save_step_params(params_file, step_id, iteration_idx, params):
+    """Save step parameters to a JSON file for future reference."""
+    import json
+    import hashlib
+    
+    params_dict = {}
+    
+    # Create a hashable representation of params
+    params_hash = hashlib.md5(json.dumps(params, sort_keys=True, default=str).encode()).hexdigest()
+    
+    if params_file.exists():
+        with open(params_file, 'r') as f:
+            params_dict = json.load(f)
+    
+    key = f"{step_id}_{iteration_idx}"
+    params_dict[key] = {"hash": params_hash, "params": params}
+    
+    with open(params_file, 'w') as f:
+        json.dump(params_dict, f, indent=2)
+
+
+def check_params_and_outputs(params_file, step_id, iteration_idx, params, output_files):
+    """Check if step was already executed with same parameters and outputs exist."""
+    import json
+    import hashlib
+    
+    if not params_file.exists():
+        return False
+    
+    try:
+        with open(params_file, 'r') as f:
+            params_dict = json.load(f)
+    except:
+        return False
+    
+    key = f"{step_id}_{iteration_idx}"
+    if key not in params_dict:
+        return False
+    
+    # Check if parameters match
+    params_hash = hashlib.md5(json.dumps(params, sort_keys=True, default=str).encode()).hexdigest()
+    saved_hash = params_dict[key].get("hash")
+    
+    if params_hash != saved_hash:
+        return False
+    
+    # Check if all output files exist
+    for output_path in output_files.values():
+        if isinstance(output_path, str) and not Path(output_path).exists():
+            return False
+    
+    return True
+
+
 def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs_json=None, use_wetlands=True, dry_run=False):
     """
     Execute a Galaxy workflow by extracting and running commands independently.
@@ -574,6 +629,9 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
     working_dir = Path(galaxy_root).resolve() / "workflow_execution"
     working_dir.mkdir(exist_ok=True)
     print(f"Working directory: {working_dir}")
+    
+    # File to track executed step parameters
+    params_file = working_dir / ".step_params.json"
     
     # Load user inputs if provided
     user_inputs = {}
@@ -787,6 +845,14 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                         CollectionElement(element_id, str(output_file))
                     )
             
+            # Check if step was already executed with same parameters and outputs exist
+            if check_params_and_outputs(params_file, step_id, iter_idx, iter_params, iter_output_files):
+                if num_iterations > 1:
+                    print(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}): SKIPPED (already executed)")
+                else:
+                    print(f"  SKIPPED (already executed)")
+                continue
+            
             # Build and execute command
             try:
                 command = tool.build_command(iter_params, output_files=iter_output_files)
@@ -801,18 +867,33 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                     if environment_manager is not None:
                         # Use Wetlands for execution
                         exit_code, stdout = execute_with_wetlands(
-                            environment_manager, 
-                            tool, 
-                            command, 
+                            environment_manager,
+                            tool,
+                            command,
                             working_dir
                         )
-                        if exit_code != 0:
-                            print(f"    Warning: Command exited with code {exit_code}")
                     else:
                         # Fall back to direct execution
                         exit_code = os.system(command)
-                        if exit_code != 0:
-                            print(f"    Warning: Command exited with code {exit_code}")
+
+                    if exit_code != 0:
+                        print(f"    Warning: Command exited with code {exit_code}")
+                    else:
+                        # Handle from_work_dir outputs - rename files to expected paths
+                        for output_name, expected_path in iter_output_files.items():
+                            output_info = tool.outputs.get(output_name)
+                            if output_info and output_info.get('from_work_dir'):
+                                from_work_dir = output_info['from_work_dir']
+                                actual_file = step_folder / from_work_dir
+                                expected_file = Path(expected_path)
+
+                                if actual_file.exists() and actual_file.resolve() != expected_file.resolve():
+                                    # Rename it to the expected path with element identifier
+                                    actual_file.rename(expected_file)
+                                    print(f"    Renamed: {from_work_dir} -> {expected_file.name}")
+
+                        # Save parameters on successful execution
+                        save_step_params(params_file, step_id, iter_idx, iter_params)
                 
             except Exception as e:
                 print(f"  Error building/executing command for iteration {iter_idx + 1}: {e}")
@@ -892,13 +973,18 @@ See COLLECTION_MAPPING_IMPLEMENTATION.md for inputs.json format
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for command-line usage."""
     args = parse_args()
-    
+
     execute_workflow(
-        workflow_file=args.workflow_file, 
-        tool_conf_xml=args.tool_conf_xml, 
-        galaxy_root=args.galaxy_root, 
-        inputs_json=args.inputs_json, 
+        workflow_file=args.workflow_file,
+        tool_conf_xml=args.tool_conf_xml,
+        galaxy_root=args.galaxy_root,
+        inputs_json=args.inputs_json,
         dry_run=args.dry_run
     )
+
+
+if __name__ == "__main__":
+    main()
