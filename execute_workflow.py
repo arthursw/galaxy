@@ -1,7 +1,8 @@
+import argparse
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, cast
 from collections import defaultdict
 import re
 import shlex
@@ -13,15 +14,9 @@ try:
 except ImportError:
     raise ImportError("Please install cheetah: pip install cheetah3")
 
-try:
-    from wetlands.environment_manager import EnvironmentManager
-    from wetlands.external_environment import ExternalEnvironment
-    from wetlands._internal.dependency_manager import Dependencies
-    WETLANDS_AVAILABLE = True
-except ImportError:
-    print("Warning: Wetlands not available. Commands will be executed directly using os.system()")
-    WETLANDS_AVAILABLE = False
-
+from wetlands.environment_manager import EnvironmentManager
+from wetlands.external_environment import ExternalEnvironment
+from wetlands._internal.dependency_manager import Dependencies
 
 # ============================================================================
 # Collection Mapping Data Structures
@@ -312,20 +307,26 @@ def wrap_main(script_path: Path) -> Path:
 
     return new_path
 
+def execute_directly(environment, command):
+    process = environment.executeCommands([command.replace("\\", "")])
+    stdout = "\n".join(process.stdout.readlines()) if process.stdout else ""
+    return process.returncode, stdout
 
-def execute_with_wetlands(environment_manager, tool, command_parts, working_dir):
+def execute_with_wetlands(environment_manager, tool, command, working_dir):
     """
     Execute a command using Wetlands environment manager.
     
     Args:
         environment_manager: EnvironmentManager instance
         tool: MinimalToolWrapper instance with requirements
-        command_parts: List of command parts (e.g., ['python', 'script.py', 'arg1'])
+        command: command (e.g., 'python script.py arg1')
         working_dir: Working directory for execution
         
     Returns:
         Tuple of (exit_code, stdout_content)
     """
+
+    command_parts = shlex.split(command)
     # Build conda dependencies from tool requirements
     conda_deps = []
     for r in tool.requirements:
@@ -348,27 +349,25 @@ def execute_with_wetlands(environment_manager, tool, command_parts, working_dir)
     print(f"  Creating/using Wetlands environment: {environment_name}")
     
     # Create or get existing environment
-    environment = environment_manager.create(environment_name, dependencies)
+    environment:ExternalEnvironment = cast(ExternalEnvironment, environment_manager.create(environment_name, dependencies))
     
+
     # Check if it's a Python command
     if not command_parts[0].startswith("python"):
-        print(f"  Warning: Non-Python command, executing directly: {' '.join(command_parts)}")
-        exit_code = os.system(' '.join(command_parts))
-        return exit_code, ""
+        print(f"  Warning: Non-Python command, executing directly: {command}")
+        return execute_directly(environment, command)
     
     # Get Python script path
     python_script_path = Path(command_parts[1])
     if not python_script_path.exists() or python_script_path.suffix != '.py':
         print(f"  Warning: Python script not found or invalid, executing directly")
-        exit_code = os.system(' '.join(command_parts))
-        return exit_code, ""
+        return execute_directly(environment, command_parts)
     
     # Wrap the script
     wrapped_script = wrap_main(python_script_path)
     if wrapped_script == python_script_path:
         print(f"  Warning: Could not wrap script, executing directly")
-        exit_code = os.system(' '.join(command_parts))
-        return exit_code, ""
+        return execute_directly(environment, command_parts)
     
     # Launch environment if not already running
     if not environment.launched():
@@ -541,7 +540,7 @@ def match_collections(
     return iteration_slices
 
 
-def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs_json=None, use_wetlands=True):
+def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs_json=None, use_wetlands=True, dry_run=False):
     """
     Execute a Galaxy workflow by extracting and running commands independently.
     Supports collection mapping for iterating over dataset collections.
@@ -552,6 +551,7 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
         galaxy_root: Root directory of Galaxy installation (optional, defaults to current working directory)
         inputs_json: Path to JSON file with workflow inputs (optional)
         use_wetlands: Whether to use Wetlands for execution (default: True)
+        dry_run: Only print commands, do not execute them
         
     If tool_conf_xml is provided, it will be parsed to map tool IDs to XML paths.
     Otherwise, it will attempt to find tool_conf.xml in the galaxy_root.
@@ -566,15 +566,12 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
     
     # Initialize EnvironmentManager if Wetlands is available and requested
     environment_manager = None
-    if use_wetlands and WETLANDS_AVAILABLE:
-        print("Initializing Wetlands EnvironmentManager...")
-        environment_manager = EnvironmentManager(debug=True)
-        print("EnvironmentManager initialized")
-    elif use_wetlands and not WETLANDS_AVAILABLE:
-        print("Warning: Wetlands requested but not available. Falling back to direct execution.")
-    
+    print("Initializing Wetlands EnvironmentManager...")
+    environment_manager = EnvironmentManager(debug=True)
+    print("EnvironmentManager initialized")
+
     # Create working directory for workflow execution
-    working_dir = Path(galaxy_root) / "workflow_execution"
+    working_dir = Path(galaxy_root).resolve() / "workflow_execution"
     working_dir.mkdir(exist_ok=True)
     print(f"Working directory: {working_dir}")
     
@@ -742,7 +739,9 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
             
             # Generate output file paths for this iteration
             # Create output folder for this step
-            step_folder = f"outputs/step{step_id}_{tool_id}"
+            step_folder = working_dir / "outputs"/ f"step{step_id}_{tool_id}"
+            step_folder.mkdir(parents=True, exist_ok=True)
+            os.chdir(step_folder)
 
             iter_output_files = {}
             for output_name, output_info in tool.outputs.items():
@@ -778,15 +777,14 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                     # output_file = f"step_{step_id}_{output_name}.{output_format}"
                     output_filename = f"{output_name}.{output_format}"
 
-                output_file = f"{step_folder}/{output_filename}"
-                Path(output_file).parent.mkdir(exist_ok=True, parents=True)
+                output_file = step_folder / f"{output_filename}"
                 
-                iter_output_files[output_name] = output_file
+                iter_output_files[output_name] = str(output_file)
                 
                 # Collect for building output collections
                 if num_iterations > 1:
                     output_collections[output_name].append(
-                        CollectionElement(element_id, output_file)
+                        CollectionElement(element_id, str(output_file))
                     )
             
             # Build and execute command
@@ -798,23 +796,23 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                 else:
                     print(f"  Command: {command}")
                 
-                # Execute the command
-                if environment_manager is not None:
-                    # Use Wetlands for execution
-                    command_parts = shlex.split(command)
-                    exit_code, stdout = execute_with_wetlands(
-                        environment_manager, 
-                        tool, 
-                        command_parts, 
-                        working_dir
-                    )
-                    if exit_code != 0:
-                        print(f"    Warning: Command exited with code {exit_code}")
-                else:
-                    # Fall back to direct execution
-                    exit_code = os.system(command)
-                    if exit_code != 0:
-                        print(f"    Warning: Command exited with code {exit_code}")
+                if not dry_run:
+                    # Execute the command
+                    if environment_manager is not None:
+                        # Use Wetlands for execution
+                        exit_code, stdout = execute_with_wetlands(
+                            environment_manager, 
+                            tool, 
+                            command, 
+                            working_dir
+                        )
+                        if exit_code != 0:
+                            print(f"    Warning: Command exited with code {exit_code}")
+                    else:
+                        # Fall back to direct execution
+                        exit_code = os.system(command)
+                        if exit_code != 0:
+                            print(f"    Warning: Command exited with code {exit_code}")
                 
             except Exception as e:
                 print(f"  Error building/executing command for iteration {iter_idx + 1}: {e}")
@@ -836,24 +834,71 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
         print(f"{'='*60}")
 
 
+def parse_args():
+    """
+    Parses command-line arguments using argparse.
+    """
+    parser = argparse.ArgumentParser(
+        description="Execute a Galaxy workflow.",
+        epilog="""
+Examples:
+  # Without collection inputs:
+  python execute_workflow.py /path/to/Galaxy-Workflow-MultiFish.ga
+  python execute_workflow.py workflow.ga config/tool_conf.xml.sample
+  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /path/to/galaxy
+
+  # With collection inputs:
+  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /path/to/galaxy inputs.json
+
+See COLLECTION_MAPPING_IMPLEMENTATION.md for inputs.json format
+"""
+    )
+
+    # Positional arguments
+    parser.add_argument(
+        'workflow_file', 
+        type=str, 
+        help='Path to the Galaxy workflow file (.ga).'
+    )
+    parser.add_argument(
+        'tool_conf_xml', 
+        type=str, 
+        nargs='?', # Optional
+        default=None, 
+        help='Path to the tool configuration XML file (e.g., tool_conf.xml.sample).'
+    )
+    parser.add_argument(
+        'galaxy_root', 
+        type=str, 
+        nargs='?', # Optional
+        default=None, 
+        help='Path to the Galaxy root directory.'
+    )
+    parser.add_argument(
+        'inputs_json', 
+        type=str, 
+        nargs='?', # Optional
+        default=None, 
+        help='Path to the JSON file containing workflow inputs, especially for collections.'
+    )
+
+    # Optional flag for dry run
+    parser.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help='Perform a dry run: print execution details but do not actually execute the workflow.'
+    )
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    import sys
+    args = parse_args()
     
-    # Example usage
-    if len(sys.argv) > 1:
-        workflow_file = sys.argv[1]
-        tool_conf_xml = sys.argv[2] if len(sys.argv) > 2 else None
-        galaxy_root = sys.argv[3] if len(sys.argv) > 3 else None
-        inputs_json = sys.argv[4] if len(sys.argv) > 4 else None
-        execute_workflow(workflow_file, tool_conf_xml, galaxy_root, inputs_json)
-    else:
-        # Demo with hardcoded paths
-        print("Usage: python execute_workflow.py <workflow.ga> [tool_conf.xml] [galaxy_root] [inputs.json]")
-        print("\nExamples:")
-        print("  # Without collection inputs:")
-        print("  python execute_workflow.py /Users/amasson/Desktop/Galaxy-Workflow-MultiFish.ga")
-        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample")
-        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /Users/amasson/Travail/galaxy")
-        print("\n  # With collection inputs:")
-        print("  python execute_workflow.py workflow.ga config/tool_conf.xml.sample /Users/amasson/Travail/galaxy inputs.json")
-        print("\nSee COLLECTION_MAPPING_IMPLEMENTATION.md for inputs.json format")
+    execute_workflow(
+        workflow_file=args.workflow_file, 
+        tool_conf_xml=args.tool_conf_xml, 
+        galaxy_root=args.galaxy_root, 
+        inputs_json=args.inputs_json, 
+        dry_run=args.dry_run
+    )

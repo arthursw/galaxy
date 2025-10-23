@@ -254,7 +254,7 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
                 if job_wrapper.tool.is_workflow_compatible:
                     
-                    # For non python job which require a non stard conda channel: create the env and execute with the legacy runner
+                    # For non python job which require a non standard conda channel: create the env and execute with the legacy runner
                     if execute_in_wetlands_env and not command_parts[0].startswith("python"):
                         # This just launches the environment, 
                         # it will activated and used by the legacy runner when executing tool_script.sh
