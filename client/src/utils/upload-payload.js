@@ -88,6 +88,13 @@ export function uploadPayload(items, historyId, composite = false) {
                             src: "files",
                             ...elem,
                         };
+                    case "desktop":
+                        // Desktop mode: pass file path for symlink creation
+                        return {
+                            src: "desktop",
+                            file_path: item.filePath,
+                            ...elem,
+                        };
                     default:
                         throw new Error(`Unknown file mode: ${item.fileMode}.`);
                 }

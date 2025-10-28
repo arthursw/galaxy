@@ -2871,6 +2871,18 @@ mapping:
           datasets will be removed after a time period specified by an administrator in
           the cleanup scripts run via cron)
 
+      allow_local_file_symlinks:
+        type: bool
+        default: false
+        required: false
+        desc: |
+          Allow creating datasets via symlinks to local file paths (desktop mode only).
+          This is intended for local development/desktop instances of Galaxy where users
+          want to work with large files without duplicating data.
+
+          **SECURITY WARNING**: Never enable this on public or production Galaxy servers!
+          This feature bypasses normal upload security and allows direct filesystem access.
+
       new_user_dataset_access_role_default_private:
         type: bool
         default: false

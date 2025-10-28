@@ -4,30 +4,55 @@
             <span v-if="!hideName">{{ tool.name }}</span>
             <span class="description">{{ tool.description }}</span>
         </a>
-        <a
-            v-else
-            :class="targetClass"
-            :data-tool-id="tool.id"
-            :href="tool.link"
-            :target="tool.target"
-            :title="tool.help"
-            @click="onClick">
-            <span class="labels">
-                <span
-                    v-for="(label, index) in tool.labels"
-                    :key="index"
-                    :class="['badge', 'badge-primary', `badge-${label}`]">
-                    {{ label }}
+        <div v-else class="d-flex align-items-center">
+            <a
+                :class="targetClass"
+                :data-tool-id="tool.id"
+                :href="tool.link"
+                :target="tool.target"
+                :title="tool.help"
+                class="flex-grow-1"
+                @click="onClick">
+                <span class="labels">
+                    <span
+                        v-for="(label, index) in tool.labels"
+                        :key="index"
+                        :class="['badge', 'badge-primary', `badge-${label}`]">
+                        {{ label }}
+                    </span>
                 </span>
-            </span>
-            <span v-if="!hideName" class="name font-weight-bold">{{ tool.name }}</span>
-            <span class="description">{{ tool.description }}</span>
-            <span
-                v-b-tooltip.hover
-                :class="['operation', 'float-right', operationIcon]"
-                :title="operationTitle"
-                @click.stop.prevent="onOperation" />
-        </a>
+                <span v-if="!hideName" class="name font-weight-bold">{{ tool.name }}</span>
+                <span class="description">{{ tool.description }}</span>
+                <span
+                    v-b-tooltip.hover
+                    :class="['operation', 'float-right', operationIcon]"
+                    :title="operationTitle"
+                    @click.stop.prevent="onOperation" />
+            </a>
+            <div v-if="showToolActions" class="tool-actions ml-2">
+                <button
+                    v-b-tooltip.hover
+                    class="btn btn-sm btn-link p-0 mr-1"
+                    title="Open in VS Code"
+                    @click.stop="onOpenTool">
+                    📂
+                </button>
+                <button
+                    v-b-tooltip.hover
+                    class="btn btn-sm btn-link p-0 mr-1"
+                    title="Rename tool"
+                    @click.stop="onEditTool">
+                    ✏️
+                </button>
+                <button
+                    v-b-tooltip.hover
+                    class="btn btn-sm btn-link p-0"
+                    title="Delete tool"
+                    @click.stop="onDeleteTool">
+                    ❌
+                </button>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -65,6 +90,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        showToolActions: {
+            type: Boolean,
+            default: false,
+        },
     },
     computed: {
         targetClass() {
@@ -84,6 +113,15 @@ export default {
             ariaAlert(`${this.tool.name} operation selected from panel`);
             this.$emit("onOperation", this.tool, evt);
         },
+        onEditTool() {
+            this.$emit("onEditTool", this.tool);
+        },
+        onDeleteTool() {
+            this.$emit("onDeleteTool", this.tool);
+        },
+        onOpenTool() {
+            this.$emit("onOpenTool", this.tool);
+        },
     },
 };
 </script>
@@ -91,5 +129,25 @@ export default {
 <style scoped>
 .toolTitle {
     overflow-wrap: anywhere;
+}
+.tool-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.toolTitle:hover .tool-actions {
+    opacity: 1;
+}
+.tool-actions button {
+    font-size: 0.875rem;
+    line-height: 1;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+.tool-actions button:hover {
+    text-decoration: none;
+    opacity: 0.7;
 }
 </style>

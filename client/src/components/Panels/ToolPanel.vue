@@ -200,7 +200,7 @@ initializePanel();
                 </div>
             </div>
         </div>
-        <button @click="()=> onCreateNewTool('')">RESET BUTTON</button>
+        <!-- <button @click="()=> onCreateNewTool('')">RESET BUTTON</button> -->
         <ToolBox
             v-if="isPanelPopulated"
             :workflow="props.workflow"

@@ -10,6 +10,7 @@ import { monitorUploadedHistoryItems } from "@/composables/monitorUploadedHistor
 import type { DbKey, ExtensionDetails } from "@/composables/uploadConfigurations";
 import { archiveExplorerEventBus, type ArchiveSource } from "@/composables/zipExplorer";
 import { filesDialog } from "@/utils/dataModals";
+import { isDesktopMode, selectDesktopFiles } from "@/utils/desktop-mode";
 import { UploadQueue } from "@/utils/upload-queue.js";
 
 import type { ComponentSize } from "../BaseComponents/componentVariants";
@@ -95,6 +96,7 @@ const historyId = computed(() => props.historyId);
 const listExtensions = computed(() => props.effectiveExtensions.filter((ext) => !ext.composite_files));
 const showHelper = computed(() => Object.keys(uploadItems.value).length === 0);
 const uploadValues = computed(() => Object.values(uploadItems.value));
+const desktopMode = computed(() => isDesktopMode());
 
 const { uploadedHistoryItemsOk, uploadedHistoryItemsReady, historyItemsStateInfo } = monitorUploadedHistoryItems(
     uploadValues as Ref<UploadItem[]>,
@@ -131,13 +133,38 @@ function addFiles(files: FileList, immediate = false) {
     }
 }
 
-function addFileFromInput(eventTarget: EventTarget | null) {
+async function addFileFromInput(eventTarget: EventTarget | null) {
+    // In desktop mode, use native file picker instead of HTML input
+    if (desktopMode.value) {
+        await addFileFromDesktop();
+        return;
+    }
+
     if (!eventTarget) {
         return;
     }
     const { files } = eventTarget as HTMLInputElement;
     if (files) {
         addFiles(files);
+    }
+}
+
+/** Add files from desktop using native file picker */
+async function addFileFromDesktop() {
+    try {
+        const desktopFiles = await selectDesktopFiles(props.multiple);
+        if (desktopFiles.length > 0) {
+            // Convert desktop file descriptors to FileList-like array
+            const fileArray = desktopFiles.map((f) => ({
+                name: f.name,
+                size: f.size || 0,
+                mode: "desktop",
+                path: f.path,
+            }));
+            queue.value.add(fileArray);
+        }
+    } catch (error) {
+        console.error("Error selecting files in desktop mode:", error);
     }
 }
 

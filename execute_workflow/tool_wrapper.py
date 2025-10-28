@@ -5,10 +5,13 @@ This module provides functionality for parsing Galaxy tool XML files
 and building command lines from tool parameters.
 """
 
+import logging
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, Optional
+
+log = logging.getLogger(__name__)
 
 try:
     from Cheetah.Template import Template
@@ -53,11 +56,11 @@ def parse_tool_conf(tool_conf_path, galaxy_root):
                 if tool_id:
                     tool_map[tool_id] = str(xml_path.resolve())
             except Exception as e:
-                print(f"Warning: Could not parse {xml_path}: {e}")
+                log.warning(f"Could not parse {xml_path}: {e}")
                 continue
 
     except Exception as e:
-        print(f"Error parsing tool_conf.xml: {e}")
+        log.error(f"Error parsing tool_conf.xml: {e}")
 
     return tool_map
 
@@ -194,4 +197,4 @@ class MinimalToolWrapper:
             )
 
         command = ' '.join(command.split())
-        return command
+        return command.replace("\\", "")

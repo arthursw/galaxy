@@ -5,6 +5,7 @@
 import axios from "axios";
 import { getAppRoot } from "onload/loadConfig";
 import * as tus from "tus-js-client";
+import { isDesktopMode, createSymlinkDataset } from "./desktop-mode";
 
 /**
  * Builds a fingerprint for the file upload.
@@ -98,6 +99,42 @@ function tusUploadStart(upload) {
     });
 }
 
+// Desktop mode: create symlinks instead of uploading
+async function desktopSymlinkSubmit(data, cnf) {
+    try {
+        const results = [];
+        const targets = data.targets || [];
+
+        for (const target of targets) {
+            for (const element of target.elements || []) {
+                if (element.file_path) {
+                    // This is a desktop file with a path
+                    try {
+                        cnf.progress(0);
+                        const result = await createSymlinkDataset(element.file_path, data.history_id, {
+                            extension: element.extension || "auto",
+                            dbkey: element.dbkey || "?",
+                            name: element.name,
+                            spaceToTab: element.space_to_tab || false,
+                            toPosixLines: element.to_posix_lines || false,
+                        });
+                        results.push(result);
+                        cnf.progress(100);
+                    } catch (error) {
+                        cnf.error(`Failed to create dataset from ${element.name}: ${error.message}`);
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Success - return results in format expected by upload queue
+        cnf.success({ outputs: results });
+    } catch (error) {
+        cnf.error(error.message || "Desktop symlink creation failed");
+    }
+}
+
 // Posts chunked files to the API.
 export function uploadSubmit(config) {
     // set options
@@ -122,6 +159,17 @@ export function uploadSubmit(config) {
         cnf.error(data.error_message);
         return;
     }
+
+    // Check if in desktop mode and we have file paths (not uploaded files)
+    if (isDesktopMode() && data.targets && data.targets.length > 0) {
+        const hasFilePaths = data.targets.some((target) =>
+            target.elements?.some((element) => element.file_path)
+        );
+        if (hasFilePaths) {
+            return desktopSymlinkSubmit(data, cnf);
+        }
+    }
+
     // execute upload
     const tusEndpoint = `${getAppRoot()}api/upload/resumable_upload/`;
     if (data.files.length || cnf.isComposite) {

@@ -19,6 +19,9 @@ const emit = defineEmits<{
     (e: "onClick", tool: any, evt: Event): void;
     (e: "onFilter", filter: string): void;
     (e: "onOperation", tool: any, evt: Event): void;
+    (e: "onEditTool", tool: any): void;
+    (e: "onDeleteTool", tool: any): void;
+    (e: "onOpenTool", tool: any): void;
 }>();
 
 const eventBus = useEventBus<string>("open-tool-section");
@@ -35,6 +38,7 @@ interface Props {
     expanded?: boolean;
     sortItems?: boolean;
     hasFilterButton?: boolean;
+    showToolActions?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -48,6 +52,7 @@ const props = withDefaults(defineProps<Props>(), {
     expanded: false,
     sortItems: true,
     hasFilterButton: false,
+    showToolActions: false,
 });
 
 const { config, isConfigLoaded } = useConfig();
@@ -150,6 +155,15 @@ function onClick(tool: any, evt: Event) {
 function onOperation(tool: any, evt: Event) {
     emit("onOperation", tool, evt);
 }
+function onEditTool(tool: any) {
+    emit("onEditTool", tool);
+}
+function onDeleteTool(tool: any) {
+    emit("onDeleteTool", tool);
+}
+function onOpenTool(tool: any) {
+    emit("onOpenTool", tool);
+}
 function toggleMenu(nextState = !opened.value) {
     opened.value = nextState;
 }
@@ -197,8 +211,12 @@ function toggleMenu(nextState = !opened.value) {
                         :hide-name="hideName"
                         :operation-title="operationTitle"
                         :operation-icon="operationIcon"
+                        :show-tool-actions="showToolActions"
                         @onOperation="onOperation"
-                        @onClick="onClick" />
+                        @onClick="onClick"
+                        @onEditTool="onEditTool"
+                        @onDeleteTool="onDeleteTool"
+                        @onOpenTool="onOpenTool" />
                 </template>
             </div>
         </transition>
@@ -211,8 +229,12 @@ function toggleMenu(nextState = !opened.value) {
             :hide-name="hideName"
             :operation-title="operationTitle"
             :operation-icon="operationIcon"
+            :show-tool-actions="showToolActions"
             @onOperation="onOperation"
-            @onClick="onClick" />
+            @onClick="onClick"
+            @onEditTool="onEditTool"
+            @onDeleteTool="onDeleteTool"
+            @onOpenTool="onOpenTool" />
     </div>
 </template>
 

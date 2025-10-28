@@ -7,10 +7,13 @@ step parameter tracking, output handling, and collection mapping.
 
 import hashlib
 import json
+import logging
 import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Union, Optional
+
+log = logging.getLogger(__name__)
 
 from wetlands.environment_manager import EnvironmentManager
 
@@ -92,14 +95,14 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
     # Initialize EnvironmentManager if Wetlands is requested
     environment_manager = None
     if use_wetlands:
-        print("Initializing Wetlands EnvironmentManager...")
+        log.info("Initializing Wetlands EnvironmentManager...")
         environment_manager = EnvironmentManager(debug=True)
-        print("EnvironmentManager initialized")
+        log.info("EnvironmentManager initialized")
 
     # Create working directory for workflow execution
     working_dir = Path(galaxy_root).resolve() / "workflow_execution"
     working_dir.mkdir(exist_ok=True)
-    print(f"Working directory: {working_dir}")
+    log.info(f"Working directory: {working_dir}")
 
     # File to track executed step parameters
     params_file = working_dir / ".step_params.json"
@@ -107,9 +110,9 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
     # Load user inputs if provided
     user_inputs = {}
     if inputs_json:
-        print(f"Loading workflow inputs from: {inputs_json}")
+        log.info(f"Loading workflow inputs from: {inputs_json}")
         user_inputs = load_workflow_inputs(inputs_json)
-        print(f"Loaded inputs for {len(user_inputs)} step(s)")
+        log.info(f"Loaded inputs for {len(user_inputs)} step(s)")
 
     # Try to find and parse tool configuration
     tool_map = {}
@@ -125,17 +128,17 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                 break
 
     if tool_conf_xml and Path(tool_conf_xml).exists():
-        print(f"Loading tool configuration from: {tool_conf_xml}")
+        log.info(f"Loading tool configuration from: {tool_conf_xml}")
         tool_map = parse_tool_conf(tool_conf_xml, galaxy_root)
-        print(f"Found {len(tool_map)} tools in configuration")
+        log.info(f"Found {len(tool_map)} tools in configuration")
     else:
-        print("Warning: No tool_conf.xml found. Tool lookup may fail for tools with non-standard paths.")
+        log.warning("No tool_conf.xml found. Tool lookup may fail for tools with non-standard paths.")
 
     try:
         with open(workflow_file) as f:
             workflow = json.load(f)
     except Exception as e:
-        print(f"Error loading workflow: {e}")
+        log.error(f"Error loading workflow: {e}")
         return
 
     tool_cache = {}
@@ -157,14 +160,14 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                         input_data = user_inputs[step_id]
                         step_outputs[step_id] = {'output': input_data}
                         if isinstance(input_data, DatasetCollection):
-                            print(f"Step {step_id}: Input collection ({input_data.collection_type}) with {len(input_data.elements)} elements")
+                            log.info(f"Step {step_id}: Input collection ({input_data.collection_type}) with {len(input_data.elements)} elements")
                         else:
-                            print(f"Step {step_id}: Input dataset: {input_data}")
+                            log.info(f"Step {step_id}: Input dataset: {input_data}")
                     else:
-                        print(f"Step {step_id}: Input dataset - requires user-provided file path")
+                        log.info(f"Step {step_id}: Input dataset - requires user-provided file path")
                         step_outputs[step_id] = {'output': 'INPUT_FILE_PLACEHOLDER'}
                 else:
-                    print(f"Step {step_id}: No tool_id found (type: {step_type})")
+                    log.info(f"Step {step_id}: No tool_id found (type: {step_type})")
                 continue
 
             # Load tool if not cached
@@ -186,14 +189,14 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                             break
 
                 if tool_xml_path is None or not tool_xml_path.exists():
-                    print(f"Step {step_id} ({tool_id}): Tool XML not found")
+                    log.error(f"Step {step_id} ({tool_id}): Tool XML not found")
                     tool_cache[tool_id] = None
                     continue
 
                 try:
                     tool_cache[tool_id] = MinimalToolWrapper(tool_id, str(tool_xml_path))
                 except Exception as e:
-                    print(f"Step {step_id} ({tool_id}): Failed to load tool - {e}")
+                    log.error(f"Step {step_id} ({tool_id}): Failed to load tool - {e}")
                     tool_cache[tool_id] = None
                     continue
 
@@ -222,9 +225,9 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
             iteration_slices = match_collections(step_outputs, input_connections)
 
             num_iterations = len(iteration_slices)
-            print(f"\nStep {step_id}: {tool_id}")
+            log.info(f"\nStep {step_id}: {tool_id}")
             if num_iterations > 1:
-                print(f"  Collection mapping: {num_iterations} iterations")
+                log.info(f"  Collection mapping: {num_iterations} iterations")
 
             # Collect output elements across all iterations
             output_collections: Dict[str, List[CollectionElement]] = defaultdict(list)
@@ -263,7 +266,7 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                                 # If source is a collection but this param wasn't in slice,
                                 # we shouldn't be here, but handle gracefully
                                 if isinstance(source_data, DatasetCollection):
-                                    print(f"  Warning: Expected collection input '{param_name}' not in slice")
+                                    log.warning(f"  Expected collection input '{param_name}' not in slice")
                                 else:
                                     iter_params[param_name] = source_data
 
@@ -322,18 +325,18 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                     # Check if step was already executed with same parameters and outputs exist
                     if check_params_and_outputs(params_file, step_id, iter_idx, iter_params, iter_output_files):
                         if num_iterations > 1:
-                            print(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}): SKIPPED (already executed)")
+                            log.info(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}): SKIPPED (already executed)")
                         else:
-                            print(f"  SKIPPED (already executed)")
+                            log.info(f"  SKIPPED (already executed)")
                         continue
 
                     # Build and execute command
                     command = tool.build_command(iter_params, output_files=iter_output_files)
                     if num_iterations > 1:
-                        print(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}):")
-                        print(f"    Command: {command}")
+                        log.info(f"  Iteration {iter_idx + 1}/{num_iterations} (element: {element_id}):")
+                        log.info(f"    Command: {command}")
                     else:
-                        print(f"  Command: {command}")
+                        log.info(f"  Command: {command}")
 
                     if not dry_run:
                         # Execute the command
@@ -363,13 +366,13 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                                     if actual_file.exists() and actual_file.resolve() != expected_file.resolve():
                                         # Rename it to the expected path with element identifier
                                         actual_file.rename(expected_file)
-                                        print(f"    Renamed: {from_work_dir} -> {expected_file.name}")
+                                        log.info(f"    Renamed: {from_work_dir} -> {expected_file.name}")
 
                             # Save parameters on successful execution
                             save_step_params(params_file, step_id, iter_idx, iter_params)
 
                 except Exception as e:
-                    print(f"  ERROR during step {step_id} iteration {iter_idx + 1}: {e}")
+                    log.error(f"  ERROR during step {step_id} iteration {iter_idx + 1}: {e}")
                     raise
                 finally:
                     # Restore original directory
@@ -388,13 +391,13 @@ def execute_workflow(workflow_file, tool_conf_xml=None, galaxy_root=None, inputs
                 # Single iteration - store as regular files
                 step_outputs[step_id] = iter_output_files
 
-            print(f"{'='*60}")
+            log.info(f"{'='*60}")
 
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"WORKFLOW EXECUTION FAILED")
-        print(f"{'='*60}")
-        print(f"Error: {e}")
+        log.error(f"\n{'='*60}")
+        log.error(f"WORKFLOW EXECUTION FAILED")
+        log.error(f"{'='*60}")
+        log.error(f"Error: {e}")
         import traceback
         traceback.print_exc()
         return

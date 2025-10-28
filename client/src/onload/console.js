@@ -23,15 +23,15 @@ export function overrideProductionConsole() {
     let storedConsole = null;
 
     const disableConsole = () => {
-        console.log(
-            "The Galaxy console has been disabled.  You can enable it by running enableDebugging() in devtools."
-        );
-        storedConsole = console;
-        // eslint-disable-next-line no-global-assign
-        console = {};
-        Object.keys(storedConsole).forEach((key) => {
-            console[key] = () => {};
-        });
+        // console.log(
+        //     "The Galaxy console has been disabled.  You can enable it by running enableDebugging() in devtools."
+        // );
+        // storedConsole = console;
+        // // eslint-disable-next-line no-global-assign
+        // console = {};
+        // Object.keys(storedConsole).forEach((key) => {
+        //     console[key] = () => {};
+        // });
     };
 
     const enableConsole = () => {

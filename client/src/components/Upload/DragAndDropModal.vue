@@ -10,6 +10,7 @@ import { useGlobalUploadModal } from "composables/globalUploadModal";
 import { computed, ref, watch } from "vue";
 
 import { useToast } from "@/composables/toast";
+import { isDesktopMode, selectDesktopFiles } from "@/utils/desktop-mode";
 
 const modalContentElement = ref(null);
 const { isFileOverDocument, isFileOverDropZone } = useFileDrop(modalContentElement, onDrop, onDropCancel, true);
@@ -28,9 +29,42 @@ const toast = useToast();
 
 const iframesNoInteract = ["galaxy_main", "frame.center-frame"];
 
-function onDrop(event) {
+
+async function onDrop(event) {
+
+
+    console.debug("ON DROP EVENT:");
+
+
+
     console.debug(event.dataTransfer);
 
+    // In desktop mode, we can't get file paths from drag-drop
+    // Instead, open native file picker
+    if (isDesktopMode()) {
+        try {
+            const desktopFiles = await selectDesktopFiles(true);
+            if (desktopFiles.length > 0) {
+                // Convert desktop file descriptors to a format compatible with upload modal
+                const fileArray = desktopFiles.map((f) => ({
+                    name: f.name,
+                    size: f.size || 0,
+                    mode: "desktop",
+                    path: f.path,
+                }));
+                openGlobalUploadModal({
+                    immediateUpload: true,
+                    immediateFiles: fileArray,
+                });
+            }
+        } catch (error) {
+            console.error("Error selecting files in desktop mode:", error);
+            toast.error("File selection failed", error.message);
+        }
+        return;
+    }
+
+    // Standard web mode - use drag-drop files
     if (event.dataTransfer?.files?.length > 0) {
         openGlobalUploadModal({
             immediateUpload: true,

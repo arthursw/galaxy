@@ -448,8 +448,37 @@ class ToolsController(BaseGalaxyAPIController, UsesVisualizationMixin):
         POST /api/tools/create_tool_config
         Create a tool config.
         """
+        tool_id = payload.get("id")
+        tool_name = payload.get("name")
+        return trans.app.toolbox.create_tool_config(tool_name, tool_id)
 
-        return trans.app.toolbox.create_tool_config(payload.get("name"))
+    @expose_api
+    def edit_tool_config(self, trans: GalaxyWebTransaction, payload, **kwds):
+        """
+        POST /api/tools/edit_tool_config
+        Edit a tool config name.
+        """
+        tool_id = payload.get("id")
+        tool_name = payload.get("name")
+        return trans.app.toolbox.edit_tool_config(tool_id, tool_name)
+
+    @expose_api
+    def delete_tool_config(self, trans: GalaxyWebTransaction, payload, **kwds):
+        """
+        POST /api/tools/delete_tool_config
+        Delete a tool config.
+        """
+        tool_id = payload.get("id")
+        return trans.app.toolbox.delete_tool_config(tool_id)
+
+    @expose_api
+    def open_tool_in_vscode(self, trans: GalaxyWebTransaction, payload, **kwds):
+        """
+        POST /api/tools/open_tool_in_vscode
+        Open a tool in VS Code.
+        """
+        tool_id = payload.get("id")
+        return trans.app.toolbox.open_tool_in_vscode(tool_id)
 
     @web.require_admin
     @expose_api

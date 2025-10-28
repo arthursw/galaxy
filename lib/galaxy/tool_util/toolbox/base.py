@@ -1230,10 +1230,13 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
         except Exception as e:
             log.exception(f"An unexpected error occurred: {e}")
 
-    def create_tool_config(self, tool_name: str):
-        tool_id = "custom_" + re.sub(r'[^\w _\-.]', '_', tool_name.lower())
+    def create_tool_config(self, tool_name: str, tool_id: str = None):
+        if tool_id is None:
+            tool_id = "custom_" + re.sub(r'[^\w _\-.]', '_', tool_name.lower())
+        else:
+            tool_id = "custom_" + tool_id
         if tool_id in self._tool_versions_by_id:
-            return {"name": tool_name, "id": tool_id}, f"error: tool aleady exists"
+            return {"name": tool_name, "id": tool_id}, f"error: tool already exists"
         tools_path = Path(galaxy_directory()) / "tools"
         local_tools_path = tools_path / "local_tools"
         local_tool_path = local_tools_path / tool_id
@@ -1253,7 +1256,139 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
         message = {"name": tool_name, "id": tool.id, "version": tool.version}
         status = "done"
         return message, status
-    
+
+    def edit_tool_config(self, tool_id: str, new_tool_name: str):
+        """Edit a tool's name."""
+        if tool_id not in self._tool_versions_by_id:
+            return {"error": "Tool not found"}, "error"
+
+        tool = self._tools_by_id.get(tool_id)
+        if not tool:
+            return {"error": "Tool not found"}, "error"
+
+        tool_config_path = tool.config_file
+        if not tool_config_path:
+            return {"error": "Tool config file not found"}, "error"
+
+        try:
+            self.change_tool_id_name(tool_config_path, tool_id, new_tool_name)
+            # Reload the tool to reflect changes
+            reload_message, reload_status = self.reload_tool_by_id(tool_id)
+            if reload_status == "error":
+                return {"error": reload_message}, "error"
+            message = {"name": new_tool_name, "id": tool_id}
+            return message, "done"
+        except Exception as e:
+            log.exception(f"Error editing tool config: {e}")
+            return {"error": str(e)}, "error"
+
+    def delete_tool_config(self, tool_id: str):
+        """Delete a tool configuration."""
+        if tool_id not in self._tool_versions_by_id:
+            return {"error": "Tool not found"}, "error"
+
+        tool = self._tools_by_id.get(tool_id)
+        if not tool:
+            return {"error": "Tool not found"}, "error"
+
+        tool_config_path = tool.config_file
+        if not tool_config_path:
+            return {"error": "Tool config file not found"}, "error"
+
+        try:
+            import shutil
+            # Get tool directory
+            tool_dir = Path(tool_config_path).parent
+
+            # Remove from tool_conf.xml first (before deleting files)
+            tools_path = Path(galaxy_directory()) / "tools"
+            tool_conf_path = Path(galaxy_directory()) / "config" / "tool_conf.xml"
+            self.remove_tool_from_xml(str(tool_conf_path), str(Path(tool_config_path).relative_to(tools_path)))
+
+            # Unregister tool from internal structures
+            if tool_id in self._tools_by_id:
+                del self._tools_by_id[tool_id]
+            if tool_id in self._tool_versions_by_id:
+                del self._tool_versions_by_id[tool_id]
+
+            # Delete tool directory (files)
+            if tool_dir.exists():
+                shutil.rmtree(tool_dir)
+
+            message = {"id": tool_id, "status": "deleted"}
+            return message, "done"
+        except Exception as e:
+            log.exception(f"Error deleting tool config: {e}")
+            return {"error": str(e)}, "error"
+
+    def open_tool_in_vscode(self, tool_id: str):
+        """Open a tool in VS Code."""
+        if tool_id not in self._tool_versions_by_id:
+            return {"error": "Tool not found"}, "error"
+
+        tool = self._tools_by_id.get(tool_id)
+        if not tool:
+            return {"error": "Tool not found"}, "error"
+
+        tool_config_path = tool.config_file
+        if not tool_config_path:
+            return {"error": "Tool config file not found"}, "error"
+
+        try:
+            import subprocess
+            tool_dir = Path(tool_config_path).parent
+
+            # Get the Python file path (assuming it has the same name as tool_id)
+            tool_id_clean = tool_id.replace("custom_", "")
+            python_file = tool_dir / f"{tool_id}.py"
+
+            # Open both XML and Python files in VS Code
+            files_to_open = [str(tool_config_path)]
+            if python_file.exists():
+                files_to_open.append(str(python_file))
+
+            # Use 'code' command to open files in VS Code
+            subprocess.Popen(["code"] + files_to_open)
+
+            message = {"id": tool_id, "files": files_to_open, "status": "opened"}
+            return message, "done"
+        except Exception as e:
+            log.exception(f"Error opening tool in VS Code: {e}")
+            return {"error": str(e)}, "error"
+
+    def remove_tool_from_xml(self, tool_conf_path, tool_file_path):
+        """Remove a tool from tool_conf.xml."""
+        try:
+            tree = ET.parse(tool_conf_path)
+            root = tree.getroot()
+
+            # Find and remove the tool element with matching file attribute
+            for tool_elem in root.findall('.//tool'):
+                if tool_elem.get('file') == tool_file_path:
+                    root.remove(tool_elem)
+                    break
+
+            tree.write(tool_conf_path)
+            log.debug(f"Successfully removed tool from {tool_conf_path}")
+        except ET.ParseError as e:
+            log.exception(f"Error parsing XML file: {e}")
+        except Exception as e:
+            log.exception(f"An unexpected error occurred: {e}")
+
+    def _remove_tool_from_panel(self, tool_id: str):
+        """Remove a tool from the tool panel."""
+        try:
+            # Remove from main tool panel
+            if hasattr(self._tool_panel, 'items'):
+                for key, value in list(self._tool_panel.items()):
+                    if hasattr(value, 'id') and value.id == tool_id:
+                        del self._tool_panel[key]
+                    elif hasattr(value, 'elems'):
+                        # Check in sections
+                        value.elems = [elem for elem in value.elems if not (hasattr(elem, 'id') and elem.id == tool_id)]
+        except Exception as e:
+            log.exception(f"Error removing tool from panel: {e}")
+
     def load_tool(
         self, config_file, guid=None, tool_shed_repository=None, use_cached=False, tool_cache_data_dir=None, **kwds
     ):

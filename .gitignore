@@ -201,3 +201,5 @@ pixi/
 # tools/local_tools
 # !tools/local_tools/template.xml
 # !tools/local_tools/template.py
+
+workflow_execution/

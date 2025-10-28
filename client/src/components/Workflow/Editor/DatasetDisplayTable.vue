@@ -51,7 +51,7 @@
               Download
             </a>
 
-            <button @click="openInNapari(dataset.id)">Open in Napari</button>
+            <button v-if="isImage(dataset.extension)" @click="openInNapari(dataset.id)">Open in Napari</button>
           </td>
         </tr>
       </tbody>
@@ -224,7 +224,7 @@ export default defineComponent({
       if (!ext) {
         return false;
       }
-      return ["png", "jpg", "jpeg", "gif", "tiff", "ome.tiff"].includes(ext.toLowerCase());
+      return ["png", "jpg", "jpeg", "gif", "tif", "tiff", "ome.tiff", "zar"].includes(ext.toLowerCase());
     },
     // openPreview(dataset: Dataset) {
     //   this.previewDataset = dataset;

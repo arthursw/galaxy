@@ -5,11 +5,14 @@ This module provides functionality for executing tools using Wetlands
 environment manager with conda dependency resolution.
 """
 
+import logging
 import re
 import shlex
 import threading
 from pathlib import Path
 from typing import cast, Tuple
+
+log = logging.getLogger(__name__)
 
 from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
@@ -40,11 +43,11 @@ def wrap_main(script_path: Path) -> Path:
     main_indices = [i for i, line in enumerate(lines) if main_clause_pattern.match(line.strip())]
 
     if len(main_indices) == 0:
-        print(f'  Warning: No \'if __name__ == "__main__":\' clause found. Script cannot be wrapped.')
+        log.warning(f'  No \'if __name__ == "__main__":\' clause found. Script cannot be wrapped.')
         return script_path
 
     if len(main_indices) > 1 or lines[main_indices[0]].lstrip() != lines[main_indices[0]]:
-        print(f'  Warning: Found multiple \'if __name__ == "__main__":\' clauses, or the clause is indented. Script cannot be wrapped.')
+        log.warning(f'  Found multiple \'if __name__ == "__main__":\' clauses, or the clause is indented. Script cannot be wrapped.')
         return script_path
 
     main_index = main_indices[0]
@@ -52,7 +55,7 @@ def wrap_main(script_path: Path) -> Path:
 
     for mci in main_call_indices:
         if main_index + 1 == mci:
-            print(f"  Script is already wrapped, {entry_function_call} is called at {mci}")
+            log.info(f"  Script is already wrapped, {entry_function_call} is called at {mci}")
             return new_path
 
     # Find the indentation
@@ -85,8 +88,14 @@ def wrap_main(script_path: Path) -> Path:
 
 def execute_directly(environment, command):
     """Execute a command directly without wrapping."""
-    process = environment.executeCommands([command.replace("\\", "")])
-    stdout = "\n".join(process.stdout.readlines()) if process.stdout else ""
+    process = environment.executeCommands(command)
+    stdout = ""
+    if process.stdout is not None:
+        for line in process.stdout:
+            line = line.strip()
+            log.info(line)
+            stdout += line + "\n"
+    process.wait()
     return process.returncode, stdout
 
 
@@ -124,7 +133,7 @@ def execute_with_wetlands(environment_manager, tool, command, working_dir) -> Tu
     # Create environment name from tool ID
     environment_name = re.sub(r'[^\w _\-.]', '_', tool.tool_id)
 
-    print(f"  Creating/using Wetlands environment: {environment_name}")
+    log.info(f"  Creating/using Wetlands environment: {environment_name}")
 
     # Create or get existing environment
     environment: ExternalEnvironment = cast(ExternalEnvironment, environment_manager.create(environment_name, dependencies))
@@ -132,25 +141,25 @@ def execute_with_wetlands(environment_manager, tool, command, working_dir) -> Tu
 
     # Check if it's a Python command
     if not command_parts[0].startswith("python"):
-        print(f"  Warning: Non-Python command, executing directly: {command}")
-        return execute_directly(environment, command)
+        log.warning(f"  Non-Python command, executing directly: {command}")
+        return execute_directly(environment, command_parts)
 
     # Get Python script path
     python_script_path = Path(command_parts[1])
     if not python_script_path.exists() or python_script_path.suffix != '.py':
-        print(f"  Warning: Python script not found or invalid, executing directly")
+        log.warning(f"  Python script not found or invalid, executing directly")
         return execute_directly(environment, command_parts)
 
     # Wrap the script
     wrapped_script = wrap_main(python_script_path)
     if wrapped_script == python_script_path:
-        print(f"  Warning: Could not wrap script, executing directly")
+        log.warning(f"  Could not wrap script, executing directly")
         return execute_directly(environment, command_parts)
 
     # Launch environment if not already running
     if not environment.launched():
-        print(f"  Launching environment...")
-        environment.launch(logOutputInThread=False)
+        log.info(f"  Launching environment...")
+        environment.launch()
 
     # Create stdout capture
     stdout_content = []
@@ -161,7 +170,7 @@ def execute_with_wetlands(environment_manager, tool, command, working_dir) -> Tu
             if line is None:
                 break
             line = line.strip()
-            print(f"    {line}")
+            log.info(f"    {line}")
             output_list.append(line)
 
     # Start logging thread
@@ -169,11 +178,12 @@ def execute_with_wetlands(environment_manager, tool, command, working_dir) -> Tu
 
     try:
         logging_thread.start()
-        print(f"  Executing script: {wrapped_script.name}")
+        log.info(f"  Executing script: {wrapped_script.name}")
+        command_parts = [cp.strip() for cp in command_parts]
         environment.execute(wrapped_script.resolve(), ENTRY_FUNCTION_NAME, (command_parts[1:],))
         exit_code = 0
     except Exception as e:
-        print(f"  Error during execution: {e}")
+        log.error(f"  Error during execution: {e}")
         exit_code = 1
     finally:
         environment.loggingQueue.put(None)

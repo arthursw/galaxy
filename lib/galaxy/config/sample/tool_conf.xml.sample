@@ -1,4 +1,3 @@
-<?xml version='1.0' encoding='utf-8'?>
 <toolbox monitor="true">
   <section id="getext" name="Get Data">
     <tool file="data_source/diced.xml" />
@@ -144,4 +143,6 @@
   <tool file="local_tools/custom_connected_components/custom_connected_components.xml" />
   <tool file="local_tools/custom_label_overlaps/custom_label_overlaps.xml" />
   <tool file="local_tools/custom_average_label_overlaps/custom_average_label_overlaps.xml" />
-</toolbox>
+  <tool file="local_tools/custom_merge_csv_collection/custom_merge_csv_collection.xml" />
+
+<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /></toolbox>

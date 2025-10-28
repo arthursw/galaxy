@@ -7,7 +7,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": "${command:pickArgs}"
+            "args": "${command:pickArgs}",
+            "justMyCode": false,
         },
         {
             "name": "GalaxyFastAPI uvicorn",
@@ -21,7 +22,7 @@
                 "galaxy.webapps.galaxy.fast_factory:factory"
             ],
             "env": {
-                "GALAXY_CONFIG_FILE": "${workspaceFolder}/config/galaxy.yml"
+                "GALAXY_CONFIG_FILE": "${workspaceFolder}/config/galaxy_debug.yml"
             },
             "python": "${workspaceFolder}/.venv/bin/python3",
             "justMyCode": false,

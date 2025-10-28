@@ -595,7 +595,7 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         dataset_manager = self.dataset_manager_by_type[hda_ldda]
         dataset: DatasetInstance = dataset_manager.get_accessible(dataset_id, trans.user)
         file_path = dataset.get_file_name()
-        trans.app.napari_launcher.open_image(file_path, dataset.ext, remove_existing_images)
+        return trans.app.napari_launcher.open_image(file_path, dataset.ext, remove_existing_images)
     
     def replace_image(
         self,
@@ -1160,3 +1160,88 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
             log.exception(msg)
             raise galaxy_exceptions.ObjectNotFound(msg)
         return indexer
+
+    def create_symlink(
+        self,
+        trans: ProvidesHistoryContext,
+        file_path: str,
+        history_id: DecodedDatabaseIdField,
+        extension: str,
+        dbkey: str,
+        name: Optional[str],
+        space_to_tab: bool,
+        to_posix_lines: bool,
+    ) -> Dict[str, Any]:
+        """Create a dataset from a local file path via symlink (desktop mode only)"""
+
+        # Security check: ensure symlinks are enabled in config
+        if not getattr(trans.app.config, "allow_local_file_symlinks", False):
+            raise galaxy_exceptions.ConfigDoesNotAllowException(
+                "Local file symlinks are not enabled on this Galaxy instance. "
+                "This feature is only available in desktop/local development mode."
+            )
+
+        # Validate file exists and is a file
+        file_path = os.path.abspath(file_path)
+        if not os.path.exists(file_path):
+            raise galaxy_exceptions.ObjectNotFound(f"File not found: {file_path}")
+        if not os.path.isfile(file_path):
+            raise galaxy_exceptions.RequestParameterInvalidException(f"Path is not a file: {file_path}")
+
+        # Get history and verify ownership
+        history = self.history_manager.get_owned(history_id, trans.user, current_history=trans.history)
+
+        # Create new dataset
+        dataset = trans.app.model.HistoryDatasetAssociation()
+        dataset.name = name or os.path.basename(file_path)
+        dataset.history = history
+        dataset.state = trans.app.model.HistoryDatasetAssociation.states.OK
+        dataset.extension = extension if extension != "auto" else "data"
+        dataset.dbkey = dbkey
+
+        # Save to get ID
+        trans.sa_session.add(dataset)
+        trans.sa_session.flush()
+
+        # Get output path from object store
+        output_path = trans.app.object_store.get_filename(dataset, base_dir="files", dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None, obj_dir=False, sync_cache=True)
+
+        # Ensure parent directory exists
+        output_dir = os.path.dirname(output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        # Create symlink (or hardlink as fallback)
+        try:
+            # Try symlink first
+            os.symlink(file_path, output_path)
+            log.info(f"Created symlink from {file_path} to {output_path}")
+        except OSError as e:
+            # Fall back to hardlink if symlink fails
+            log.warning(f"Symlink failed ({e}), falling back to hardlink")
+            try:
+                os.link(file_path, output_path)
+                log.info(f"Created hardlink from {file_path} to {output_path}")
+            except OSError as e2:
+                # Clean up the dataset if both fail
+                trans.sa_session.delete(dataset)
+                trans.sa_session.flush()
+                raise galaxy_exceptions.InternalServerError(
+                    f"Failed to create symlink or hardlink: {e2}"
+                )
+
+        # Set dataset size
+        dataset.set_size()
+
+        # Set dataset metadata
+        trans.sa_session.flush()
+
+        # Return dataset information
+        return {
+            "id": trans.security.encode_id(dataset.id),
+            "name": dataset.name,
+            "extension": dataset.extension,
+            "state": dataset.state,
+            "file_size": dataset.get_size(),
+            "hid": dataset.hid,
+        }

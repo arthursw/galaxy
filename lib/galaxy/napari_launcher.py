@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import cast
 
+from httpx import head
 from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
 
@@ -70,3 +71,8 @@ class NapariLauncher:
             if not link.exists():
                 link.symlink_to(file_path)
             self.open_image_in_napari(link, remove_existing_images)
+            headers = {
+                "Content-Type": "image/"+ ext,
+                "Content-Disposition": f'inline; filename="{link.name}"',
+            }
+            return  link, headers

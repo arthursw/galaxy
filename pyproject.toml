@@ -108,6 +108,7 @@ dependencies = [
     "WebOb>=1.8.9",  # Python 3.13 support
     "wetlands>=0.2.2,<0.3",
     "Whoosh",
+    "pywebview>=6.0",
     "zipstream-new",
 ]
 

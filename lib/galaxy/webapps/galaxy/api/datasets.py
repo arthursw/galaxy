@@ -599,3 +599,23 @@ class FastAPIDatasets:
         payload: UpdateObjectStoreIdPayload = Body(...),
     ) -> None:
         self.service.update_object_store_id(trans, dataset_id, payload)
+
+    @router.post(
+        "/api/datasets/create_symlink",
+        summary="Create a dataset from a local file path via symlink (desktop mode only)",
+        operation_id="datasets__create_symlink",
+    )
+    def create_symlink(
+        self,
+        trans=DependsOnTrans,
+        file_path: str = Body(..., description="Absolute path to the local file"),
+        history_id: DecodedDatabaseIdField = Body(..., description="History to add the dataset to"),
+        extension: str = Body("auto", description="Dataset file extension"),
+        dbkey: str = Body("?", description="Database/build key"),
+        name: Optional[str] = Body(None, description="Dataset name (defaults to filename)"),
+        space_to_tab: bool = Body(False, description="Convert spaces to tabs"),
+        to_posix_lines: bool = Body(False, description="Convert line endings to POSIX"),
+    ):
+        return self.service.create_symlink(
+            trans, file_path, history_id, extension, dbkey, name, space_to_tab, to_posix_lines
+        )
