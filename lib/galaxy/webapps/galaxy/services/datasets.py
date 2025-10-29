@@ -1165,7 +1165,7 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         self,
         trans: ProvidesHistoryContext,
         file_path: str,
-        history_id: DecodedDatabaseIdField,
+        history_id: int,
         extension: str,
         dbkey: str,
         name: Optional[str],
@@ -1191,27 +1191,35 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
         # Get history and verify ownership
         history = self.history_manager.get_owned(history_id, trans.user, current_history=trans.history)
 
-        # Create new dataset
-        dataset = trans.app.model.HistoryDatasetAssociation()
-        dataset.name = name or os.path.basename(file_path)
-        dataset.history = history
-        dataset.state = trans.app.model.HistoryDatasetAssociation.states.OK
-        dataset.extension = extension if extension != "auto" else "data"
-        dataset.dbkey = dbkey
+        # Detect extension from file path if set to "auto"
+        if extension == "auto":
+            _, file_ext = os.path.splitext(file_path)
+            extension = file_ext.lstrip(".") or "data"  # Default to "data" if no extension found
 
-        # Save to get ID
-        trans.sa_session.add(dataset)
+        # Create new dataset through HDA manager to ensure proper SQLAlchemy instrumentation
+        dataset = self.hda_manager.create(
+            flush=False,  # Don't fully flush yet - we need to create the symlink first
+            history=history,
+            dataset=None,  # Let manager create the dataset
+            name=name or os.path.basename(file_path),
+            extension=extension,
+            dbkey=dbkey,
+        )
+
+        # Need to flush to assign database IDs before constructing path
+        # This ensures construct_path uses the real dataset ID, not a temporary one
         trans.sa_session.flush()
 
-        # Get output path from object store
-        output_path = trans.app.object_store.get_filename(dataset, base_dir="files", dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None, obj_dir=False, sync_cache=True)
+        # Construct output path (don't use get_filename which requires file to exist)
+        # Use construct_path to get the path where the file should be stored
+        output_path = trans.app.object_store.construct_path(dataset, base_dir="files", dir_only=False, extra_dir=None, extra_dir_at_root=False, alt_name=None, obj_dir=False)
 
         # Ensure parent directory exists
         output_dir = os.path.dirname(output_path)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
-        # Create symlink (or hardlink as fallback)
+        # Create symlink (or hardlink as fallback) BEFORE committing dataset
         try:
             # Try symlink first
             os.symlink(file_path, output_path)
@@ -1230,11 +1238,22 @@ class DatasetsService(ServiceBase, UsesVisualizationMixin):
                     f"Failed to create symlink or hardlink: {e2}"
                 )
 
-        # Set dataset size
-        dataset.set_size()
+        # Set dataset size BEFORE changing state to OK
+        # Force file size calculation even if it's already set to 0
+        dataset.dataset.file_size = os.path.getsize(file_path)
+        dataset.dataset.total_size = dataset.dataset.file_size
 
-        # Set dataset metadata
-        trans.sa_session.flush()
+        # Update the object store to register the file
+        # This is crucial so that dataset.get_file_name() works correctly
+        trans.app.object_store.update_from_file(dataset.dataset, file_name=output_path, create=True)
+
+        # NOW set both Dataset and HDA states to OK after file is created and sized
+        dataset.dataset.state = trans.app.model.Dataset.states.OK
+        dataset.state = trans.app.model.HistoryDatasetAssociation.states.OK
+        trans.sa_session.add(dataset.dataset)
+        trans.sa_session.add(dataset)
+        trans.sa_session.commit()
+        trans.sa_session.refresh(dataset)
 
         # Return dataset information
         return {

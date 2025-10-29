@@ -3,8 +3,6 @@
  * Provides detection of desktop mode and file selection via pywebview
  */
 
-import { getAppRoot } from "@/onload/loadConfig";
-
 /**
  * Check if running in desktop mode (pywebview)
  * @returns {boolean} True if running in desktop mode
@@ -66,7 +64,7 @@ export async function createSymlinkDataset(filePath, historyId, options = {}) {
     };
 
     try {
-        const response = await fetch(`${getAppRoot()}api/datasets/create_symlink`, {
+        const response = await fetch(`${window.location.origin}/api/datasets/create_symlink`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

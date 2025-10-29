@@ -145,4 +145,4 @@
   <tool file="local_tools/custom_average_label_overlaps/custom_average_label_overlaps.xml" />
   <tool file="local_tools/custom_merge_csv_collection/custom_merge_csv_collection.xml" />
 
-<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /></toolbox>
+<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /><tool file="local_tools/custom_Display_shape/custom_Display_shape.xml" /><tool file="local_tools/custom_Ease/custom_Ease.xml" /><tool file="local_tools/custom_Eeeaz/custom_Eeeaz.xml" /></toolbox>

@@ -498,7 +498,7 @@ defineExpose({
                 'upload-buttons': !disableFooter,
                 'flex-gapx-1': disableFooter,
             }">
-            <GButton id="btn-local" :size="size" :disabled="!enableSources" @click="uploadFile?.click()">
+            <GButton id="btn-local" :size="size" :disabled="!enableSources" @click="desktopMode ? addFileFromDesktop() : uploadFile?.click()">
                 <FontAwesomeIcon :icon="faLaptop" />
                 <span v-localize>Choose local file</span>
             </GButton>

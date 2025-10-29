@@ -609,13 +609,15 @@ class FastAPIDatasets:
         self,
         trans=DependsOnTrans,
         file_path: str = Body(..., description="Absolute path to the local file"),
-        history_id: DecodedDatabaseIdField = Body(..., description="History to add the dataset to"),
+        history_id: str = Body(..., description="History to add the dataset to (encoded ID)"),
         extension: str = Body("auto", description="Dataset file extension"),
         dbkey: str = Body("?", description="Database/build key"),
         name: Optional[str] = Body(None, description="Dataset name (defaults to filename)"),
         space_to_tab: bool = Body(False, description="Convert spaces to tabs"),
         to_posix_lines: bool = Body(False, description="Convert line endings to POSIX"),
     ):
+        # Decode the history_id from encoded format to integer
+        decoded_history_id = trans.security.decode_id(history_id)
         return self.service.create_symlink(
-            trans, file_path, history_id, extension, dbkey, name, space_to_tab, to_posix_lines
+            trans, file_path, decoded_history_id, extension, dbkey, name, space_to_tab, to_posix_lines
         )

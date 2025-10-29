@@ -9,6 +9,7 @@
     <inputs>
         <param name="input" type="data" format="png,tiff" label="Image file" />
     </inputs>
+    
     <outputs>
         <data name="c1" format_source="input" metadata_source="input" />
         <data name="c2" format_source="input" metadata_source="input" />

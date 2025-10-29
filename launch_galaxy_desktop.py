@@ -19,31 +19,24 @@ from pathlib import Path
 class DesktopApi:
     """API exposed to JavaScript for desktop-specific functionality"""
 
+    def __init__(self, window=None):
+        """Initialize API with optional window reference for file dialogs"""
+        self.window = window
+
     def select_files(self, multiple=True):
-        """Open native file picker and return absolute file paths"""
+        """Open native file picker using pywebview and return absolute file paths"""
         try:
-            import tkinter as tk
-            from tkinter import filedialog
+            if self.window is None:
+                print("Error: Window reference not available for file picker")
+                return []
 
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes('-topmost', True)
+            result = self.window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=multiple,
+            )
 
-            if multiple:
-                file_paths = filedialog.askopenfilenames(
-                    title="Select files to add to Galaxy",
-                    parent=root
-                )
-                result = list(file_paths) if file_paths else []
-            else:
-                file_path = filedialog.askopenfilename(
-                    title="Select file to add to Galaxy",
-                    parent=root
-                )
-                result = [file_path] if file_path else []
-
-            root.destroy()
-            return result
+            # result is a list of file paths or None if cancelled
+            return list(result) if result else []
         except Exception as e:
             print(f"Error in file picker: {e}")
             return []
@@ -222,7 +215,7 @@ class GalaxyLauncher:
         api = DesktopApi()
 
         # Create the window with the API exposed
-        webview.create_window(
+        window = webview.create_window(
             title="Galaxy Workflow System",
             url=self.galaxy_url,
             width=1400,
@@ -232,6 +225,9 @@ class GalaxyLauncher:
             min_size=(800, 600),
             js_api=api
         )
+
+        # Set the window reference on the API so it can access create_file_dialog()
+        api.window = window
 
         # Start the webview (this blocks until window is closed)
         webview.start(debug=self.dev_mode)

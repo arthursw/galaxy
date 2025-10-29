@@ -2,6 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Galaxy Desktop",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "launch_galaxy_desktop.py",
+            "console": "integratedTerminal",
+            "args": "--dev",
+            "justMyCode": false,
+            "autoReload": {
+                "enable": true
+            },
+        },
+        {
             "name": "Python Debugger: Current File with Arguments",
             "type": "debugpy",
             "request": "launch",
