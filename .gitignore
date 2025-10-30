@@ -203,3 +203,5 @@ pixi/
 # !tools/local_tools/template.py
 
 workflow_execution/
+.claude/
+tools/local_tools/*/.vscode/

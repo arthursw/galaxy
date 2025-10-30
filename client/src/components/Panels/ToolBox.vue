@@ -151,7 +151,7 @@ async function confirmCreateTool() {
     try {
         const url = `${getAppRoot()}api/tools/create_tool_config/`;
         // Replace spaces with underscores for the tool ID
-        const toolId = newToolName.value.replace(/\s+/g, '_');
+        const toolId = newToolName.value.replace(/\s+/g, '_').toLowerCase();
         await axios.post(url, { name: newToolName.value, id: toolId });
         // success - close modal and reset
         emit("onCreateNewTool", toolId);
@@ -410,6 +410,7 @@ async function onOpenTool(tool: Tool) {
                         v-model="newToolName"
                         placeholder="Enter tool name"
                         @input="onToolNameInput($event)"
+                        @keydown.enter="confirmCreateTool"
                     />
                     <small v-if="createError" class="text-danger">{{ createError }}</small>
                     <small v-else class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>

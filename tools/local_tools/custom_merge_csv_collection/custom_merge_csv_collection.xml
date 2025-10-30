@@ -1,0 +1,26 @@
+<tool id="custom_merge_csv_collection" name="Merge CSV collection" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+
+  <description>Merge multiple CSV datasets into a single CSV (Python implementation). Keeps only the first header line if headers match.</description>
+
+    <requirements>
+    </requirements>
+    <command detect_errors="exit_code">
+        
+        python3 "${__tool_directory__}/custom_merge_csv_collection.py" --output "$merged"
+        #for $input_file in $input_files:
+            "$input_file"
+        #end for
+        
+    </command>
+    <inputs>
+        <param name="input_files" type="data" format="csv" multiple="true" label="Input CSV files (select multiple or a collection expanded)" />
+    </inputs>
+
+    <outputs>
+        <data name="merged" format="csv" label="Merged CSV" />
+    </outputs>
+
+    <help>
+        Python-based CSV concatenation. Advantages: handles slightly more CSV edge cases, and compares header rows robustly.
+    </help>
+</tool>

@@ -2,20 +2,15 @@
 Job runner plugin for executing jobs on the local system via the command line.
 """
 
-import io
 import logging
 from pathlib import Path
 import re
-import selectors
 import shlex
 import shutil
-import subprocess
 import tempfile
 import threading
 import typing
 from galaxy.jobs.runners.local_legacy import LegacyLocalJobRunner
-from galaxy.jobs.runners.rename_datasets_context import RenameDatasets
-from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
 from wetlands._internal.dependency_manager import Dependencies
 from wetlands.logger import logger
@@ -23,49 +18,8 @@ from wetlands.logger import logger
 
 
 __all__ = ("LocalJobRunner",)
-ENTRY_FUNCTION_NAME = "__galaxy_entry_point__"
 logger.setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
-
-# class EnvironmentLogger:
-#     def __init__(self):
-#         self._stop_event = threading.Event()
-
-#     def logStdOut(self, process: subprocess.Popen, file: typing.BinaryIO) -> None:
-#         """Logs output from the subprocess until stopped."""
-#         if process is None or process.stdout is None:
-#             return
-#         sel = selectors.DefaultSelector()
-#         sel.register(process.stdout, selectors.EVENT_READ)
-        
-#         log.debug(f'init LogStdOut from {process.pid}')
-        
-#         # Loop as long as _stop_event is not set:
-#         # Every ~200 ms (timeout=0.2), check if data is available to read.
-#         # If data is available:
-#         # - read one line.
-#         # - If EOF (not line), exit (return).
-#         # Otherwise:
-#         # - Strips and prints the line.
-#         # - Logs it to a file (file.write(...)).
-#         try:
-#             while not self._stop_event.is_set():
-#                 for key, _ in sel.select(timeout=0.2):  # check every 200ms
-#                     line = typing.cast(io.TextIOWrapper, key.fileobj).readline()
-#                     if not line:
-#                         return
-#                     line = line.strip()
-#                     print(line)
-#                     log.debug(line)
-#                     # file.write(line + "\n")
-#                     file.write((line + "\n").encode("utf-8", errors="replace"))
-#                     file.flush()
-#         except Exception as e:
-#             file.write((f"Exception in logging thread: {e}\n").encode("utf-8", errors="replace"))
-#         return
-            
-#     def stop(self):
-#         self._stop_event.set()
 
 class LocalJobRunner(LegacyLocalJobRunner):
     """
@@ -81,83 +35,10 @@ class LocalJobRunner(LegacyLocalJobRunner):
         # Hard code nworkers to debug, but works with multiple workers
         super().__init__(app, nworkers=1)
 
-    def wrap_main(self, script_path: Path) -> Path | None:
-        """
-        Duplicate a Python script and move the code inside
-        'if __name__ == "__main__":' into a entry point function.
-        Adds an invocation right after the block.
-        Safe to run multiple times (idempotent).
-        
-        Returns the path to the new script.
-        """
-        new_path = script_path.with_name(f"{script_path.stem}{ENTRY_FUNCTION_NAME}.py")
-        if new_path.exists():
-            return new_path
-
-        entry_function_call = f"{ENTRY_FUNCTION_NAME}(sys.argv)"
-
-        with open(script_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
-        main_clause_pattern = re.compile(r'if\s+__name__\s*==\s*(["\'])__main__\1\s*:')
-        main_indices = [i for i, line in enumerate(lines) if main_clause_pattern.match(line.strip())]
-        
-        if len(main_indices)==0:
-            log.debug('No \'if __name__ == "__main__":\' clause found. Script cannot be wrapped.')
-            return None
-        
-        if len(main_indices)>1 or lines[main_indices[0]].lstrip() != lines[main_indices[0]]:
-            log.debug('Found multiple \'if __name__ == "__main__":\' clauses, or the clause is indented. Script cannot be wrapped.')
-            return None
-        main_index = main_indices[0]
-        main_call_indices =  [i for i, line in enumerate(lines) if line.strip() == entry_function_call]
-        
-        for mci in main_call_indices:
-            if main_index + 1 == mci:
-                log.debug(f"Script is already wrapped, {entry_function_call} is called at {mci}")
-                return new_path
-
-        # Find the indentation
-        indentation = -1
-
-        # Iterate through the lines *after* the main clause and find the next code line, and set the indentation
-        for line in lines[main_index + 1:]:
-            stripped_line = line.strip()
-
-            # 3. Skip invalid lines: empty, whitespace-only, or full-line comments
-            if not stripped_line or stripped_line.startswith('#'):
-                continue
-
-            # 4. We found the first valid line! Now, calculate its indentation.
-            # The indentation is the part of the string that's removed by lstrip().
-            indentation = line[:-len(line.lstrip())]
-        
-        new_lines = lines.copy()
-        end_index = len(lines)
-        
-        new_lines[main_index] = f"import sys\n\ndef {ENTRY_FUNCTION_NAME}(args):\n{indentation}sys.argv = args\n"
-
-        for li in range(main_index+3, len(lines)):
-            line = lines[li]
-            if len(line.lstrip()) == len(line):
-                end_index = li
-        
-        new_lines.insert(end_index, f"\nif __name__ == \"__main__\":\n{indentation}{entry_function_call}\n\n")
-
-        with open(new_path, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-
-        return new_path
-
     def _execute_with_wetlands(self, job_wrapper, python_script_path, command_parts, stdout_file):
 
         self.tracker.show_elapsed("_execute_with_wetlands()")
         
-        if python_script_path is not None:
-            python_script_path = self.wrap_main(python_script_path)
-            if python_script_path is None:
-                return None
-
         # tool requirements
         requirements = job_wrapper.tool.requirements.packages.to_list()
 
@@ -183,9 +64,6 @@ class LocalJobRunner(LegacyLocalJobRunner):
 
         environment_name = re.sub(r'[^\w _\-.]', '_', job_wrapper.tool.id)
         
-        # job_wrapper.job_io.job.input_datasets[0].dataset.extension
-        # job_wrapper.job_io.get_input_datasets()[0].ext
-        # extra_files_path
 
         # Lock to avoid creating twice the same env (wetlands locks the connection)
         with self._environment_lock:
@@ -224,8 +102,8 @@ class LocalJobRunner(LegacyLocalJobRunner):
             
             try:
                 logging_thread.start()
-                # with RenameDatasets(job_wrapper.job_io.get_input_datasets(), command_parts[1:]) as args:
-                environment.execute(python_script_path.resolve(), ENTRY_FUNCTION_NAME, (command_parts[1:],))
+
+                environment.runScript(python_script_path.resolve(), tuple(command_parts[2:]))
             except Exception as e:
                 raise e
             finally:

@@ -1,0 +1,395 @@
+{
+    "a_galaxy_workflow": "true",
+    "annotation": "",
+    "comments": [],
+    "format-version": "0.1",
+    "name": "MultiFish",
+    "report": {
+        "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+        "0": {
+            "annotation": "",
+            "content_id": null,
+            "errors": null,
+            "id": 0,
+            "input_connections": {},
+            "inputs": [],
+            "label": null,
+            "name": "Input dataset collection",
+            "outputs": [],
+            "position": {
+                "left": 0,
+                "top": 0
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null, \"collection_type\": \"list\", \"fields\": null}",
+            "tool_version": null,
+            "type": "data_collection_input",
+            "uuid": "7b6d71a8-41f3-4c53-a6b8-cfb45bf7d402",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "1": {
+            "annotation": "",
+            "content_id": "custom_splitchannels",
+            "errors": null,
+            "id": 1,
+            "input_connections": {
+                "input": {
+                    "id": 0,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Split Channels",
+            "outputs": [
+                {
+                    "name": "c1",
+                    "type": "input"
+                },
+                {
+                    "name": "c2",
+                    "type": "input"
+                },
+                {
+                    "name": "c3",
+                    "type": "input"
+                }
+            ],
+            "position": {
+                "left": 254.70700765113793,
+                "top": 9.884540878716782
+            },
+            "post_job_actions": {},
+            "tool_id": "custom_splitchannels",
+            "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.1.0+galaxy0",
+            "type": "tool",
+            "uuid": "3f466214-fa29-4d48-884f-198e306ec6d4",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "2": {
+            "annotation": "",
+            "content_id": "custom_atlas",
+            "errors": null,
+            "id": 2,
+            "input_connections": {
+                "input_image": {
+                    "id": 1,
+                    "output_name": "c1"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Atlas",
+            "outputs": [
+                {
+                    "name": "output_image",
+                    "type": "input"
+                }
+            ],
+            "position": {
+                "left": 602.8584037573465,
+                "top": 40.960569659866735
+            },
+            "post_job_actions": {},
+            "tool_id": "custom_atlas",
+            "tool_state": "{\"area_lim\": \"0.0\", \"gaussian_std\": \"60\", \"input_image\": {\"__class__\": \"ConnectedValue\"}, \"p_value\": \"0.001\", \"verbose\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.1.0+galaxy0",
+            "type": "tool",
+            "uuid": "671c5cf5-2dfa-42f7-9b51-6fd07fb7831d",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "3": {
+            "annotation": "",
+            "content_id": "custom_atlas",
+            "errors": null,
+            "id": 3,
+            "input_connections": {
+                "input_image": {
+                    "id": 1,
+                    "output_name": "c2"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Atlas",
+            "outputs": [
+                {
+                    "name": "output_image",
+                    "type": "input"
+                }
+            ],
+            "position": {
+                "left": 596.4451865702837,
+                "top": 167.11945689599614
+            },
+            "post_job_actions": {},
+            "tool_id": "custom_atlas",
+            "tool_state": "{\"area_lim\": \"0.0\", \"gaussian_std\": \"60\", \"input_image\": {\"__class__\": \"ConnectedValue\"}, \"p_value\": \"0.001\", \"verbose\": false, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.1.0+galaxy0",
+            "type": "tool",
+            "uuid": "5f02fd3b-a2c5-4d2c-b355-a12547fec733",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "4": {
+            "annotation": "",
+            "content_id": "cellpose_segmentation",
+            "errors": null,
+            "id": 4,
+            "input_connections": {
+                "input_image": {
+                    "id": 1,
+                    "output_name": "c3"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Cellpose segmentation",
+            "outputs": [
+                {
+                    "name": "segmentation",
+                    "type": "tiff"
+                }
+            ],
+            "position": {
+                "left": 622.815785998679,
+                "top": 355.12483911475545
+            },
+            "post_job_actions": {},
+            "tool_id": "cellpose_segmentation",
+            "tool_state": "{\"cellprob_threshold\": \"0.0\", \"channel_axis\": null, \"diameter\": null, \"do_3D\": false, \"flow3D_smooth\": \"0\", \"flow_threshold\": \"0.4\", \"input_image\": {\"__class__\": \"ConnectedValue\"}, \"max_size_fraction\": \"0.4\", \"min_size\": \"15\", \"niter\": null, \"use_gpu\": false, \"z_axis\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.1.0+galaxy0",
+            "type": "tool",
+            "uuid": "56d7e6b8-b46a-40de-8d69-9a4508d266ae",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "5": {
+            "annotation": "",
+            "content_id": "connected_components",
+            "errors": null,
+            "id": 5,
+            "input_connections": {
+                "image": {
+                    "id": 2,
+                    "output_name": "output_image"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Connected Components",
+            "outputs": [
+                {
+                    "name": "labeled_image",
+                    "type": "tiff"
+                }
+            ],
+            "position": {
+                "left": 865.6217724601036,
+                "top": 52.42820142182618
+            },
+            "post_job_actions": {},
+            "tool_id": "connected_components",
+            "tool_state": "{\"image\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "d6469e7e-de47-4d45-9576-6f3bf81f34f9",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "6": {
+            "annotation": "",
+            "content_id": "connected_components",
+            "errors": null,
+            "id": 6,
+            "input_connections": {
+                "image": {
+                    "id": 3,
+                    "output_name": "output_image"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Connected Components",
+            "outputs": [
+                {
+                    "name": "labeled_image",
+                    "type": "tiff"
+                }
+            ],
+            "position": {
+                "left": 862.4750717195521,
+                "top": 181.32154787707123
+            },
+            "post_job_actions": {},
+            "tool_id": "connected_components",
+            "tool_state": "{\"image\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "10c5c561-ea71-4944-8554-06a08ff1a01f",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "7": {
+            "annotation": "",
+            "content_id": "label_overlaps",
+            "errors": null,
+            "id": 7,
+            "input_connections": {
+                "label1": {
+                    "id": 5,
+                    "output_name": "labeled_image"
+                },
+                "label2": {
+                    "id": 4,
+                    "output_name": "segmentation"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Label Overlaps",
+            "outputs": [
+                {
+                    "name": "output_csv",
+                    "type": "csv"
+                }
+            ],
+            "position": {
+                "left": 1339.2678594610516,
+                "top": 59.12956335874811
+            },
+            "post_job_actions": {},
+            "tool_id": "label_overlaps",
+            "tool_state": "{\"label1\": {\"__class__\": \"ConnectedValue\"}, \"label2\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "60c42726-99ba-43b5-9099-8f4f6c7f4e06",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "8": {
+            "annotation": "",
+            "content_id": "label_overlaps",
+            "errors": null,
+            "id": 8,
+            "input_connections": {
+                "label1": {
+                    "id": 6,
+                    "output_name": "labeled_image"
+                },
+                "label2": {
+                    "id": 4,
+                    "output_name": "segmentation"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Label Overlaps",
+            "outputs": [
+                {
+                    "name": "output_csv",
+                    "type": "csv"
+                }
+            ],
+            "position": {
+                "left": 1325.2489098774683,
+                "top": 215.22846984244077
+            },
+            "post_job_actions": {},
+            "tool_id": "label_overlaps",
+            "tool_state": "{\"label1\": {\"__class__\": \"ConnectedValue\"}, \"label2\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "a97570dd-9f09-421d-b0c6-375744a83731",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "9": {
+            "annotation": "",
+            "content_id": "count_label_overlaps",
+            "errors": null,
+            "id": 9,
+            "input_connections": {
+                "input_csv": {
+                    "id": 7,
+                    "output_name": "output_csv"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Count Label Overlaps",
+            "outputs": [
+                {
+                    "name": "output_csv",
+                    "type": "csv"
+                }
+            ],
+            "position": {
+                "left": 1648.4336995392528,
+                "top": 33.37385209379688
+            },
+            "post_job_actions": {},
+            "tool_id": "count_label_overlaps",
+            "tool_state": "{\"average\": false, \"input_csv\": {\"__class__\": \"ConnectedValue\"}, \"label1_max\": null, \"label1_min\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "07a937fb-fa77-40ad-bf51-72f3983d4858",
+            "when": null,
+            "workflow_outputs": [
+                {
+                    "label": "label_overlap_c1",
+                    "output_name": "output_csv",
+                    "uuid": "3ec0ad03-7f70-4a7d-8cd1-2c79d29cfbee"
+                }
+            ]
+        },
+        "10": {
+            "annotation": "",
+            "content_id": "count_label_overlaps",
+            "errors": null,
+            "id": 10,
+            "input_connections": {
+                "input_csv": {
+                    "id": 8,
+                    "output_name": "output_csv"
+                }
+            },
+            "inputs": [],
+            "label": null,
+            "name": "Count Label Overlaps",
+            "outputs": [
+                {
+                    "name": "output_csv",
+                    "type": "csv"
+                }
+            ],
+            "position": {
+                "left": 1667.7340963654406,
+                "top": 215.71750157916446
+            },
+            "post_job_actions": {},
+            "tool_id": "count_label_overlaps",
+            "tool_state": "{\"average\": false, \"input_csv\": {\"__class__\": \"ConnectedValue\"}, \"label1_max\": null, \"label1_min\": null, \"__page__\": 0, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.0",
+            "type": "tool",
+            "uuid": "7f448642-c4ed-4787-9921-af8054ac6e00",
+            "when": null,
+            "workflow_outputs": [
+                {
+                    "label": "label_overlap_c2",
+                    "output_name": "output_csv",
+                    "uuid": "ff8beda5-7496-40a8-aa66-5fd77d72288b"
+                }
+            ]
+        }
+    },
+    "tags": [],
+    "uuid": "c9f4c377-ec4d-454b-802a-49a61a2a23fb",
+    "version": 5
+}

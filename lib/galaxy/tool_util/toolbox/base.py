@@ -1232,9 +1232,7 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
 
     def create_tool_config(self, tool_name: str, tool_id: str = None):
         if tool_id is None:
-            tool_id = "custom_" + re.sub(r'[^\w _\-.]', '_', tool_name.lower())
-        else:
-            tool_id = "custom_" + tool_id
+            tool_id = re.sub(r'[^\w _\-.]', '_', tool_name.lower())
         if tool_id in self._tool_versions_by_id:
             return {"name": tool_name, "id": tool_id}, f"error: tool already exists"
         tools_path = Path(galaxy_directory()) / "tools"

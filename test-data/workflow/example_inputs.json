@@ -1,0 +1,21 @@
+{
+  "inputs": {
+    "0": {
+      "collection_type": "list",
+      "elements": [
+        {
+          "identifier": "image_1",
+          "path": "~/Documents/DemoData/FISH/13432_orig.tiff"
+        },
+        {
+          "identifier": "image_2",
+          "path": "~/Documents/DemoData/FISH/13434_orig.tiff"
+        },
+        {
+          "identifier": "image_3",
+          "path": "~/Documents/DemoData/FISH/13436_orig.tiff"
+        }
+      ]
+    }
+  }
+}
