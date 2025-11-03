@@ -450,7 +450,11 @@ class ToolsController(BaseGalaxyAPIController, UsesVisualizationMixin):
         """
         tool_id = payload.get("id")
         tool_name = payload.get("name")
-        return trans.app.toolbox.create_tool_config(tool_name, tool_id)
+        message, status = trans.app.toolbox.create_tool_config(tool_name, tool_id)
+        if status != "done":
+            trans.response.status = 409  # Conflict - tool already exists
+            return {"error": message if isinstance(message, str) else "Tool already exists"}
+        return message
 
     @expose_api
     def edit_tool_config(self, trans: GalaxyWebTransaction, payload, **kwds):

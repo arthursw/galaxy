@@ -136,7 +136,6 @@
     <tool file="phenotype_association/master2pg.xml" />
   </section>
   <tool file="local_tools/binarize/binarize.xml" />
-  <tool file="local_tools/solarize/solarize.xml" />
   <tool file="local_tools/custom_splitchannels/custom_splitchannels.xml" />
   <tool file="local_tools/custom_atlas/custom_atlas.xml" />
   <tool file="local_tools/custom_cellpose/custom_cellpose.xml" />
@@ -145,4 +144,4 @@
   <tool file="local_tools/custom_average_label_overlaps/custom_average_label_overlaps.xml" />
   <tool file="local_tools/custom_merge_csv_collection/custom_merge_csv_collection.xml" />
 
-<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /><tool file="local_tools/custom_Display_shape/custom_Display_shape.xml" /><tool file="local_tools/custom_Ease/custom_Ease.xml" /><tool file="local_tools/custom_Eeeaz/custom_Eeeaz.xml" /></toolbox>
+<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /><tool file="local_tools/custom_Display_shape/custom_Display_shape.xml" /><tool file="local_tools/custom_Ease/custom_Ease.xml" /><tool file="local_tools/custom_Eeeaz/custom_Eeeaz.xml" /><tool file="local_tools/albert/albert.xml" /><tool file="local_tools/another/another.xml" /><tool file="local_tools/nowrkf/nowrkf.xml" /><tool file="local_tools/ekrjh_ezlrkj/ekrjh_ezlrkj.xml" /><tool file="local_tools/hector_beaver/hector_beaver.xml" /><tool file="local_tools/zeze/zeze.xml" /><tool file="local_tools/azazeaze/azazeaze.xml" /><tool file="local_tools/expected/expected.xml" /><tool file="local_tools/another_tool/another_tool.xml" /></toolbox>

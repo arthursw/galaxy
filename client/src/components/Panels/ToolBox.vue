@@ -2,13 +2,11 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import axios from "axios";
 import { storeToRefs } from "pinia";
-import { computed, type ComputedRef, type PropType, type Ref, ref } from "vue";
+import { computed, type ComputedRef, type PropType, type Ref, ref, watch } from "vue";
 
 import { useGlobalUploadModal } from "@/composables/globalUploadModal";
 import { useToolRouting } from "@/composables/route";
-import { getAppRoot } from "@/onload/loadConfig";
 import type { Tool, ToolSection as ToolSectionType } from "@/stores/toolStore";
 import { useToolStore } from "@/stores/toolStore";
 import localize from "@/utils/localization";
@@ -28,9 +26,9 @@ const emit = defineEmits<{
     (e: "update:panel-query", query: string): void;
     (e: "onInsertTool", toolId: string, toolName: string): void;
     (e: "onInsertModule", moduleName: string, moduleTitle: string | undefined): void;
-    (e: "onCreateNewTool", newToolName: string): void;
+    (e: "onCreateTool"): void;
     (e: "onDeleteTool", toolId: string): void;
-    (e: "onEditTool", toolId: string, newName: string): void;
+    (e: "onEditTool", toolId: string, toolName: string): void;
     (e: "onOpenTool", toolId: string): void;
 }>();
 
@@ -51,6 +49,14 @@ const showSections = ref(props.workflow);
 const results: Ref<string[]> = ref([]);
 const resultPanel: Ref<Record<string, Tool | ToolSectionType> | null> = ref(null);
 const closestTerm: Ref<string | null> = ref(null);
+
+// Delete confirmation modal state
+const showDeleteModal = ref(false);
+const deleteToolId = ref("");
+const deleteToolName = ref("");
+const isDeletingTool = ref(false);
+const deleteStatus = ref("");
+const deleteCheckCount = ref(0);
 
 const toolStore = useToolStore();
 
@@ -76,6 +82,20 @@ const { currentPanelView, currentToolSections } = storeToRefs(toolStore);
 const hasResults = computed(() => results.value.length > 0);
 const queryTooShort = computed(() => query.value && query.value.length < 3);
 const queryFinished = computed(() => query.value && queryPending.value != true);
+
+// Watch for when store tool sections are refreshed (after deletion)
+watch(
+    () => currentToolSections.value,
+    () => {
+        // Clear cached search results so fresh data is shown
+        results.value = [];
+        resultPanel.value = null;
+        queryFilter.value = null;
+        queryPending.value = false;
+        query.value = "";
+    },
+    { deep: true }
+);
 
 const hasDataManagerSection = computed(() => props.workflow && props.dataManagers && props.dataManagers.length > 0);
 const dataManagerSection = computed(() => {
@@ -117,50 +137,8 @@ const localSectionsById = computed(() => {
 
 const toolsList = computed(() => Object.values(localToolsById.value));
 
-const showCreateModal = ref(false);
-const newToolName = ref("");
-const createError = ref<string | null>(null);
-const validToolName = computed(() => {
-    const name = newToolName.value || "";
-    const exists = toolsList.value.some(element => element.id === newToolName.value);
-    // allow alphanumeric, underscore, space, hyphen, dot
-    return /^[\w \-.]+$/.test(name) && name.trim().length > 0 && !exists;
-});
-
-const showEditModal = ref(false);
-const editToolId = ref("");
-const editToolName = ref("");
-const editError = ref<string | null>(null);
-const validEditToolName = computed(() => {
-    const name = editToolName.value || "";
-    // allow alphanumeric, underscore, space, hyphen, dot
-    return /^[\w \-.]+$/.test(name) && name.trim().length > 0;
-});
-
-function onToolNameInput(val: string) {
-    // remove any characters that aren't allowed as the user types
-    newToolName.value = (val || "").replace(/[^\w \-.]/g, "");
-    createError.value = null;
-}
-
-async function confirmCreateTool() {
-    if (!validToolName.value) {
-        createError.value = "Invalid tool name";
-        return;
-    }
-    try {
-        const url = `${getAppRoot()}api/tools/create_tool_config/`;
-        // Replace spaces with underscores for the tool ID
-        const toolId = newToolName.value.replace(/\s+/g, '_').toLowerCase();
-        await axios.post(url, { name: newToolName.value, id: toolId });
-        // success - close modal and reset
-        emit("onCreateNewTool", toolId);
-        showCreateModal.value = false;
-        newToolName.value = "";
-    } catch (e) {
-        // basic error reporting - keep modal open so user can retry
-        createError.value = (e as Error).message || "Failed to create tool";
-    }
+function onCreateToolClick() {
+    emit("onCreateTool");
 }
 
 /**
@@ -240,85 +218,69 @@ function onToggle() {
     showSections.value = !showSections.value;
 }
 
-async function refreshTools() {
-    // Clear the tool store to force a complete refresh
-    toolStore.saveAllTools([]);
-    toolStore.saveToolSections(currentPanelView.value, {});
+function onEditToolClick(tool: Tool) {
+    emit("onEditTool", tool.id, tool.name);
+}
 
-    // Fetch fresh data from the backend
+function onDeleteToolClick(tool: Tool) {
+    deleteToolId.value = tool.id;
+    deleteToolName.value = tool.name;
+    showDeleteModal.value = true;
+    isDeletingTool.value = false;
+    deleteStatus.value = "";
+    deleteCheckCount.value = 0;
+}
+
+async function confirmDeleteTool() {
+    if (!deleteToolId.value) return;
+
+    isDeletingTool.value = true;
+    deleteStatus.value = "Deleting tool...";
+    deleteCheckCount.value = 0;
+
     try {
-        const { data } = await axios.get(`${getAppRoot()}api/tools?in_panel=False&_=${Date.now()}`);
-        toolStore.saveAllTools(data);
+        // Emit delete event to parent (ToolPanel)
+        emit("onDeleteTool", deleteToolId.value);
 
-        await toolStore.fetchToolSections(currentPanelView.value);
-    } catch (e) {
-        console.error("Error refreshing tools:", e);
+        // Poll to verify tool is actually deleted
+        const maxAttempts = 30; // 30 checks
+        const pollInterval = 500; // 500ms between checks
+
+        while (deleteCheckCount.value < maxAttempts) {
+            deleteCheckCount.value++;
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+            // Check if tool still exists in the tool list
+            const toolExists = toolStore.toolsById && toolStore.toolsById[deleteToolId.value];
+
+            deleteStatus.value = `Waiting for new tool list to be loading...`;
+
+            if (!toolExists) {
+                deleteStatus.value = "✓ Tool deleted successfully!";
+                isDeletingTool.value = false;
+                // Auto-close modal after 1 second
+                setTimeout(() => {
+                    showDeleteModal.value = false;
+                }, 1000);
+                return;
+            }
+        }
+
+        // If we get here, tool still exists after max attempts
+        deleteStatus.value = "Tool deletion may not have completed. Closing modal...";
+        isDeletingTool.value = false;
+        setTimeout(() => {
+            showDeleteModal.value = false;
+        }, 2000);
+
+    } catch (error) {
+        deleteStatus.value = `Error: ${error instanceof Error ? error.message : "Failed to delete tool"}`;
+        isDeletingTool.value = false;
     }
 }
 
-function onCreateTool() {
-    showCreateModal.value = true;
-}
-
-function onEditTool(tool: Tool) {
-    editToolId.value = tool.id;
-    editToolName.value = tool.name;
-    editError.value = null;
-    showEditModal.value = true;
-}
-
-function onEditToolNameInput(val: string) {
-    // remove any characters that aren't allowed as the user types
-    editToolName.value = (val || "").replace(/[^\w \-.]/g, "");
-    editError.value = null;
-}
-
-async function confirmEditTool() {
-    if (!validEditToolName.value) {
-        editError.value = "Invalid tool name";
-        return;
-    }
-    try {
-        const url = `${getAppRoot()}api/tools/edit_tool_config/`;
-        await axios.post(url, { id: editToolId.value, name: editToolName.value });
-        // success - close modal and reset
-        emit("onEditTool", editToolId.value, editToolName.value);
-        showEditModal.value = false;
-        editToolId.value = "";
-        editToolName.value = "";
-        // Refresh the tool list
-        await refreshTools();
-    } catch (e) {
-        // basic error reporting - keep modal open so user can retry
-        editError.value = (e as Error).message || "Failed to edit tool";
-    }
-}
-
-async function onDeleteTool(tool: Tool) {
-    if (!confirm(`Are you sure you want to delete the tool "${tool.name}"?`)) {
-        return;
-    }
-    try {
-        const url = `${getAppRoot()}api/tools/delete_tool_config/`;
-        await axios.post(url, { id: tool.id });
-        // success - emit event to parent
-        emit("onDeleteTool", tool.id);
-        // Refresh the tool list
-        await refreshTools();
-    } catch (e) {
-        alert((e as Error).message || "Failed to delete tool");
-    }
-}
-
-async function onOpenTool(tool: Tool) {
-    try {
-        const url = `${getAppRoot()}api/tools/open_tool_in_vscode/`;
-        await axios.post(url, { id: tool.id });
-        // success - emit event to parent
-        emit("onOpenTool", tool.id);
-    } catch (e) {
-        alert((e as Error).message || "Failed to open tool");
-    }
+async function onOpenToolClick(tool: Tool) {
+    emit("onOpenTool", tool.id);
 }
 </script>
 
@@ -391,55 +353,49 @@ async function onOpenTool(tool: Tool) {
                             :show-tool-actions="true"
                             @onClick="onToolClick"
                             @onFilter="onSectionFilter"
-                            @onEditTool="onEditTool"
-                            @onDeleteTool="onDeleteTool"
-                            @onOpenTool="onOpenTool" />
+                            @onEditTool="onEditToolClick"
+                            @onDeleteTool="onDeleteToolClick"
+                            @onOpenTool="onOpenToolClick" />
                     </div>
                 </div>
             </div>
 
-            <b-button id="create-tool-button" size="sm" @click="onCreateTool">Create tool</b-button>
-
-            <b-modal id="create-tool-modal" v-model="showCreateModal" title="Create tool">
-                <template v-slot:modal-title>
-                    <h2 class="mb-0">Tool name</h2>
-                </template>
-                <div class="mb-2">
-                    <!-- <label class="d-block">Tool name</label> -->
-                    <b-form-input
-                        v-model="newToolName"
-                        placeholder="Enter tool name"
-                        @input="onToolNameInput($event)"
-                        @keydown.enter="confirmCreateTool"
-                    />
-                    <small v-if="createError" class="text-danger">{{ createError }}</small>
-                    <small v-else class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>
-                </div>
-                <template v-slot:modal-footer>
-                    <b-button variant="secondary" @click="showCreateModal = false">Cancel</b-button>
-                    <b-button variant="primary" :disabled="!validToolName" @click="confirmCreateTool">Create</b-button>
-                </template>
-            </b-modal>
-
-            <b-modal id="edit-tool-modal" v-model="showEditModal" title="Edit tool">
-                <template v-slot:modal-title>
-                    <h2 class="mb-0">Edit tool name</h2>
-                </template>
-                <div class="mb-2">
-                    <b-form-input
-                        v-model="editToolName"
-                        placeholder="Enter tool name"
-                        @input="onEditToolNameInput($event)"
-                    />
-                    <small v-if="editError" class="text-danger">{{ editError }}</small>
-                    <small v-else class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>
-                </div>
-                <template v-slot:modal-footer>
-                    <b-button variant="secondary" @click="showEditModal = false">Cancel</b-button>
-                    <b-button variant="primary" :disabled="!validEditToolName" @click="confirmEditTool">Save</b-button>
-                </template>
-            </b-modal>
+            <b-button id="create-tool-button" size="sm" @click="onCreateToolClick">Create tool</b-button>
         </div>
+
+        <!-- Delete Tool Confirmation Modal -->
+        <b-modal
+            id="delete-tool-modal"
+            v-model="showDeleteModal"
+            title="Delete Tool"
+            :no-close-on-backdrop="isDeletingTool"
+            :no-close-on-esc="isDeletingTool"
+            @hidden="() => { showDeleteModal = false; }">
+            <template v-slot:modal-title>
+                <h2 class="mb-0">Delete Tool</h2>
+            </template>
+            <div class="mb-3">
+                <p>Are you sure you want to delete the tool "<strong>{{ deleteToolName }}</strong>"?</p>
+                <b-alert v-if="deleteStatus" variant="info" show>
+                    {{ deleteStatus }}
+                </b-alert>
+            </div>
+            <template v-slot:modal-footer>
+                <b-button
+                    variant="secondary"
+                    :disabled="isDeletingTool"
+                    @click="showDeleteModal = false">
+                    Cancel
+                </b-button>
+                <b-button
+                    variant="danger"
+                    :disabled="isDeletingTool"
+                    @click="confirmDeleteTool">
+                    <span v-if="isDeletingTool">Deleting...</span>
+                    <span v-else>Delete</span>
+                </b-button>
+            </template>
+        </b-modal>
     </div>
 </template>
 

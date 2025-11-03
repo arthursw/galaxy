@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import axios from "axios";
 import { storeToRefs } from "pinia";
 import { computed, ref, watch } from "vue";
 
+import { getAppRoot } from "@/onload/loadConfig";
 import { useToolStore } from "@/stores/toolStore";
 import { useUserStore } from "@/stores/userStore";
 import localize from "@/utils/localization";
@@ -43,6 +45,25 @@ const panelsFetched = ref(false);
 const query = ref("");
 const showAdvanced = ref(false);
 
+// Create tool modal state
+const showCreateModal = ref(false);
+const newToolName = ref("");
+const createError = ref<string | null>(null);
+const createSuccess = ref(false);
+const isCreatingTool = ref(false);
+const createInputRef = ref<any>(null);
+const createForbiddenCharWarning = ref(false);
+
+// Edit tool modal state
+const showEditModal = ref(false);
+const editToolId = ref("");
+const editToolName = ref("");
+const editError = ref<string | null>(null);
+const editSuccess = ref(false);
+const isEditingTool = ref(false);
+const editInputRef = ref<any>(null);
+const editForbiddenCharWarning = ref(false);
+
 const panelIcon = computed(() => {
     if (showAdvanced.value) {
         return "search";
@@ -71,6 +92,25 @@ const showFavorites = computed({
             query.value = query.value.replace("#favorites", "").trim();
         }
     },
+});
+
+// Tool validation computed properties
+const allTools = computed(() => {
+    const { toolsById } = toolStore;
+    return toolsById ? Object.values(toolsById) : [];
+});
+
+const validToolName = computed(() => {
+    const name = newToolName.value || "";
+    const exists = allTools.value.some(element => element.id === newToolName.value);
+    // allow alphanumeric, underscore, space, hyphen, dot
+    return /^[\w \-.]+$/.test(name) && name.trim().length > 0 && !exists;
+});
+
+const validEditToolName = computed(() => {
+    const name = editToolName.value || "";
+    // allow alphanumeric, underscore, space, hyphen, dot
+    return /^[\w \-.]+$/.test(name) && name.trim().length > 0;
 });
 
 const toolPanelHeader = computed(() => {
@@ -121,20 +161,178 @@ function onInsertWorkflowSteps(workflowId: string, workflowStepCount: number | u
     emit("onInsertWorkflowSteps", workflowId, workflowStepCount);
 }
 
-async function onCreateNewTool(newToolName: string) {
+function onToolNameInput(val: string) {
+    // remove any characters that aren't allowed as the user types
+    const filtered = (val || "").replace(/[^\w \-.]/g, "");
+    // Check if any characters were removed
+    if (filtered !== val) {
+        createForbiddenCharWarning.value = true;
+        // Auto-hide warning after 2 seconds
+        setTimeout(() => {
+            createForbiddenCharWarning.value = false;
+        }, 2000);
+    }
+    newToolName.value = filtered;
+    createError.value = null;
+}
+
+function onEditToolNameInput(val: string) {
+    // remove any characters that aren't allowed as the user types
+    const filtered = (val || "").replace(/[^\w \-.]/g, "");
+    // Check if any characters were removed
+    if (filtered !== val) {
+        editForbiddenCharWarning.value = true;
+        // Auto-hide warning after 2 seconds
+        setTimeout(() => {
+            editForbiddenCharWarning.value = false;
+        }, 2000);
+    }
+    editToolName.value = filtered;
+    editError.value = null;
+}
+
+async function confirmCreateTool() {
+    if (createSuccess.value) {
+        showCreateModal.value = false;
+        return;
+    }
+    if (!validToolName.value) {
+        createError.value = "Invalid tool name";
+        return;
+    }
+    isCreatingTool.value = true;
     try {
-        // Clear cached tools so fetchTools will re-fetch the full tool list
-        toolStore.saveAllTools([]);
-        // Determine which panel view we need to clear (don't overwrite the empty-string key)
-        const viewToClear = currentPanelView.value || toolStore.defaultPanelView || "";
-        // Clear the actual panel's sections so they will be re-fetched by initializePanel
-        toolStore.saveToolSections(viewToClear, {});
-        // Reset currentPanelView so initializePanel will re-initialize to default/active view
-        currentPanelView.value = "";
-        await initializePanel();
-    } catch (error) {
-        console.error("ToolPanel::onCreateNewTool -", error);
-        errorMessage.value = errorMessageAsString(error);
+        const url = `${getAppRoot()}api/tools/create_tool_config/`;
+        // Replace spaces with underscores for the tool ID
+        const toolId = newToolName.value.replace(/\s+/g, '_').toLowerCase();
+        await axios.post(url, { name: newToolName.value, id: toolId });
+        // success - show feedback and keep modal open
+        createSuccess.value = true;
+        createError.value = null;
+        isCreatingTool.value = false;
+
+        // Refresh the tool list so the new tool appears (do this first)
+        await refreshToolsAndPanel();
+
+        // Auto-close modal after 2 seconds (after refresh completes and success is visible)
+        setTimeout(() => {
+            showCreateModal.value = false;
+        }, 2000);
+    } catch (e) {
+        // basic error reporting - keep modal open so user can retry
+        let errorMessage = "Failed to create tool";
+        if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            const statusText = e.response?.statusText;
+            // Check for error message in multiple possible locations
+            const errorData = e.response?.data?.error || e.response?.data?.message || e.response?.data?.err_msg;
+            if (errorData) {
+                errorMessage = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
+            } else if (statusText) {
+                errorMessage = `${statusText}${status ? ` (${status})` : ''}`;
+            } else {
+                errorMessage = e.message || errorMessage;
+            }
+        } else if (e instanceof Error) {
+            errorMessage = e.message;
+        }
+        console.error("Create tool error:", errorMessage, e);
+        createError.value = errorMessage;
+        createSuccess.value = false;
+        isCreatingTool.value = false;
+    }
+}
+
+async function confirmEditTool() {
+    if (editSuccess.value) {
+        showEditModal.value = false;
+        return;
+    }
+    if (!validEditToolName.value) {
+        editError.value = "Invalid tool name";
+        return;
+    }
+    isEditingTool.value = true;
+    try {
+        const url = `${getAppRoot()}api/tools/edit_tool_config/`;
+        await axios.post(url, { id: editToolId.value, name: editToolName.value });
+        // success - show feedback and keep modal open
+        editSuccess.value = true;
+        editError.value = null;
+        isEditingTool.value = false;
+
+        // Refresh the tool list so the updated tool appears (do this first)
+        await refreshToolsAndPanel();
+
+        // Auto-close modal after 2 seconds (after refresh completes and success is visible)
+        setTimeout(() => {
+            showEditModal.value = false;
+        }, 2000);
+    } catch (e) {
+        // basic error reporting - keep modal open so user can retry
+        let errorMessage = "Failed to edit tool";
+        if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            const statusText = e.response?.statusText;
+            const message = e.response?.data?.message || e.response?.data?.err_msg;
+            errorMessage = message || (statusText ? `${statusText} (${status})` : e.message || errorMessage);
+        } else if (e instanceof Error) {
+            errorMessage = e.message;
+        }
+        console.error("Edit tool error:", errorMessage, e);
+        editError.value = errorMessage;
+        editSuccess.value = false;
+        isEditingTool.value = false;
+    }
+}
+
+async function refreshToolsAndPanel() {
+    // Clear cached tools so fetchTools will re-fetch the full tool list
+    toolStore.saveAllTools([]);
+    // Determine which panel view we need to clear (don't overwrite the empty-string key)
+    const viewToClear = currentPanelView.value || toolStore.defaultPanelView || "";
+    // Clear the actual panel's sections so they will be re-fetched by initializePanel
+    toolStore.saveToolSections(viewToClear, {});
+    // Re-initialize panel to load fresh tools
+    await initializePanel();
+}
+
+function onCreateToolClicked() {
+    // Reset state when opening modal
+    showCreateModal.value = true;
+    newToolName.value = "";
+    createError.value = null;
+    createSuccess.value = false;
+    isCreatingTool.value = false;
+}
+
+function onEditToolClicked(toolId: string, toolName: string) {
+    // Reset state when opening modal
+    showEditModal.value = true;
+    editToolId.value = toolId;
+    editToolName.value = toolName;
+    editError.value = null;
+    editSuccess.value = false;
+    isEditingTool.value = false;
+}
+
+async function onDeleteTool(toolId: string) {
+    try {
+        const url = `${getAppRoot()}api/tools/delete_tool_config/`;
+        await axios.post(url, { id: toolId });
+        // Refresh the tool list
+        await refreshToolsAndPanel();
+    } catch (e) {
+        alert((e as Error).message || "Failed to delete tool");
+    }
+}
+
+async function onOpenTool(toolId: string) {
+    try {
+        const url = `${getAppRoot()}api/tools/open_tool_in_vscode/`;
+        await axios.post(url, { id: toolId });
+    } catch (e) {
+        alert((e as Error).message || "Failed to open tool");
     }
 }
 
@@ -152,6 +350,30 @@ watch(
         query.value = "";
         if ((!newVal || !toolSections.value[newVal]) && panelsFetched.value) {
             await initializePanel();
+        }
+    }
+);
+
+// Focus create input when modal opens
+watch(
+    () => showCreateModal.value,
+    (isOpen) => {
+        if (isOpen) {
+            setTimeout(() => {
+                createInputRef.value?.$el?.focus?.();
+            }, 0);
+        }
+    }
+);
+
+// Focus edit input when modal opens
+watch(
+    () => showEditModal.value,
+    (isOpen) => {
+        if (isOpen) {
+            setTimeout(() => {
+                editInputRef.value?.$el?.focus?.();
+            }, 0);
         }
     }
 );
@@ -212,8 +434,11 @@ initializePanel();
             @onInsertTool="onInsertTool"
             @onInsertModule="onInsertModule"
             @onInsertWorkflow="onInsertWorkflow"
-            @onInsertWorkflowSteps="onInsertWorkflowSteps" 
-            @onCreateNewTool="onCreateNewTool"
+            @onInsertWorkflowSteps="onInsertWorkflowSteps"
+            @onCreateTool="onCreateToolClicked"
+            @onEditTool="onEditToolClicked"
+            @onDeleteTool="onDeleteTool"
+            @onOpenTool="onOpenTool"
             />
         <div v-else-if="errorMessage" data-description="tool panel error message">
             <b-alert class="m-2" variant="danger" show>
@@ -225,6 +450,115 @@ initializePanel();
                 <LoadingSpan message="Loading Toolbox" />
             </b-badge>
         </div>
+
+        <!-- Create Tool Modal (persists across ToolBox re-renders) -->
+        <b-modal
+            id="create-tool-modal"
+            v-model="showCreateModal"
+            title="Create tool"
+            @hidden="() => { showCreateModal = false; }">
+            <template v-slot:modal-title>
+                <h2 class="mb-0">Tool name</h2>
+            </template>
+            <div class="mb-2">
+                <b-alert v-show="createSuccess" variant="success" class="mb-2" show>
+                    ✓ Tool created successfully!
+                </b-alert>
+
+                <b-alert
+                    v-show="createError"
+                    variant="danger"
+                    dismissible
+                    class="mb-2"
+                    show
+                    @dismissed="createError = null"
+                >
+                    {{ createError }}
+                </b-alert>
+
+                <b-alert
+                    v-show="createForbiddenCharWarning"
+                    variant="warning"
+                    class="mb-2"
+                    show
+                >
+                    ⚠ Special characters are not allowed and will be removed
+                </b-alert>
+
+                <b-form-input
+                    v-show="!createSuccess"
+                    ref="createInputRef"
+                    v-model="newToolName"
+                    placeholder="Enter tool name"
+                    :disabled="isCreatingTool"
+                    @input="onToolNameInput($event)"
+                    @keydown.enter="confirmCreateTool"
+                />
+                <small v-if="!createError && !createSuccess && !isCreatingTool" class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>
+            </div>
+            <template v-slot:modal-footer>
+                <b-button v-show="!createSuccess && !isCreatingTool" variant="secondary" :disabled="isCreatingTool" @click="showCreateModal = false">{{ 'Cancel' }}</b-button>
+                <b-button variant="primary" :disabled="!validToolName || isCreatingTool" @click="confirmCreateTool">
+                    <span v-if="isCreatingTool">Creating...</span>
+                    <span v-else-if="createSuccess">Done</span>
+                    <span v-else>Create</span>
+                </b-button>
+            </template>
+        </b-modal>
+
+        <!-- Edit Tool Modal (persists across ToolBox re-renders) -->
+        <b-modal
+            id="edit-tool-modal"
+            v-model="showEditModal"
+            title="Edit tool"
+            @hidden="() => { showEditModal = false; }">
+            <template v-slot:modal-title>
+                <h2 class="mb-0">Edit tool name</h2>
+            </template>
+            <div class="mb-2">
+                <b-alert v-show="editSuccess" variant="success" class="mb-2" show>
+                    ✓ Tool updated successfully!
+                </b-alert>
+                <b-alert
+                    v-show="editError"
+                    variant="danger"
+                    dismissible
+                    class="mb-2"
+                    show
+                    @dismissed="editError = null"
+                >
+                    {{ editError }}
+                </b-alert>
+
+                <b-alert
+                    v-show="editForbiddenCharWarning"
+                    variant="warning"
+                    class="mb-2"
+                    show
+                >
+                    ⚠ Special characters are not allowed and were removed
+                </b-alert>
+
+                <b-form-input
+                    v-if="!editSuccess"
+                    ref="editInputRef"
+                    v-model="editToolName"
+                    placeholder="Enter tool name"
+                    :disabled="isEditingTool"
+                    @input="onEditToolNameInput($event)"
+                    @keydown.enter="confirmEditTool"
+                />
+                <small v-if="!editError && !editSuccess && !isEditingTool" class="text-muted">Allowed characters: letters, numbers, spaces, underscore, hyphen, dot</small>
+            </div>
+            <template v-slot:modal-footer>
+                <b-button variant="secondary" :disabled="isEditingTool" @click="showEditModal = false">{{ editSuccess ? 'Close' : 'Cancel' }}</b-button>
+                <b-button variant="primary" :disabled="!validEditToolName || isEditingTool" @click="confirmEditTool">
+                    <span v-if="isEditingTool">Saving...</span>
+                    <span v-else-if="editSuccess">Done</span>
+                    <span v-else>Save</span>
+                </b-button>
+            </template>
+        </b-modal>
     </div>
     <b-alert v-else-if="currentToolSections" class="m-2" variant="info" show>
         <LoadingSpan message="Loading Toolbox" />

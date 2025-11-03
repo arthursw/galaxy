@@ -378,7 +378,7 @@ module.exports = (env = {}, argv = {}) => {
     }
 
     if (process.env.GXY_BUILD_SOURCEMAPS) {
-        buildconfig.devtool = "eval-cheap-module-source-map";
+        buildconfig.devtool = "source-map";
     }
 
     return buildconfig;

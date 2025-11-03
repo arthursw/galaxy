@@ -75,11 +75,8 @@ describe("ToolPanel", () => {
      */
     async function createWrapper(errorView: string = "", failDefault: boolean = false) {
         const axiosMock = new MockAdapter(axios);
-        axiosMock
-            .onGet(`/api/tools?in_panel=False`)
-            .replyOnce(200, toolsList)
-            .onGet(TEST_PANELS_URI)
-            .reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsList });
+        axiosMock.onGet(`/api/tools?in_panel=False`).replyOnce(200, toolsList);
+        axiosMock.onGet(TEST_PANELS_URI).reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsList });
 
         if (errorView) {
             axiosMock.onGet(`/api/tool_panels/${errorView}`).reply(400, { err_msg: PANEL_VIEW_ERR_MSG });
@@ -196,5 +193,232 @@ describe("ToolPanel", () => {
         const wrapper = await createWrapper(viewKey, true);
         expect(wrapper.find('[data-description="panel toolbox"]').exists()).toBeFalsy();
         expect(wrapper.find('[data-description="tool panel error message"]').text()).toBe(PANEL_VIEW_ERR_MSG);
+    });
+});
+
+describe("ToolPanel - Create/Edit Tool Modals", () => {
+    /**
+     * Creates a ToolPanel wrapper with ToolBox NOT stubbed so we can test the full integration
+     */
+    async function createWrapperWithToolBox(axiosMock?: MockAdapter) {
+        if (!axiosMock) {
+            axiosMock = new MockAdapter(axios);
+        }
+
+        axiosMock
+            .onGet(`/api/tools?in_panel=False`)
+            .replyOnce(200, toolsList)
+            .onGet(TEST_PANELS_URI)
+            .reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsListJson });
+
+        axiosMock.onGet(/\/api\/tool_panels\/.*/).reply(200, toolsListInPanel);
+
+        server.use(
+            http.get("/api/users/{user_id}", ({ response }) => {
+                return response(200).json(getFakeRegisteredUser());
+            })
+        );
+
+        const pinia = createPinia();
+        const wrapper = mount(ToolPanel as object, {
+            propsData: {
+                workflow: false,
+                editorWorkflows: null,
+                dataManagers: null,
+                moduleSections: null,
+                useSearchWorker: false,
+            },
+            localVue,
+            stubs: {
+                icon: { template: "<div></div>" },
+                // DON'T stub ToolBox so we can test the full integration
+            },
+            pinia,
+        });
+
+        await flushPromises();
+        return { wrapper, axiosMock };
+    }
+
+    it("should show create modal when create tool button is clicked", async () => {
+        const { wrapper } = await createWrapperWithToolBox();
+
+        // Find and click the create tool button in ToolBox
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        expect(toolBox.exists()).toBe(true);
+
+        const createButton = toolBox.find("#create-tool-button");
+        expect(createButton.exists()).toBe(true);
+
+        await createButton.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        // Modal should now be visible
+        const modal = wrapper.find("#create-tool-modal");
+        expect(modal.exists()).toBe(true);
+        expect(modal.isVisible()).toBe(true);
+    });
+
+    it("should show success message and keep modal open after successful tool creation", async () => {
+        const axiosMock = new MockAdapter(axios);
+        axiosMock.onPost("/api/tools/create_tool_config/").reply(200, { id: "new_tool" });
+        axiosMock.onGet(/api\/tools/).reply(200, toolsList);
+        axiosMock.onGet(`/api/tools?in_panel=False`).reply(200, [...toolsList, { id: "new_tool", name: "test_tool" }]);
+        axiosMock.onGet(TEST_PANELS_URI).reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsListJson });
+        axiosMock.onGet(/\/api\/tool_panels\/.*/).reply(200, toolsListInPanel);
+
+        const { wrapper } = await createWrapperWithToolBox(axiosMock);
+
+        // Click create tool button to open modal
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        const createButton = toolBox.find("#create-tool-button");
+        await createButton.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        // Enter tool name in the modal input
+        const input = wrapper.find("input[placeholder='Enter tool name']");
+        await input.setValue("test_tool");
+        await wrapper.vm.$nextTick();
+
+        // Click create button
+        const confirmButton = wrapper.find("#create-tool-modal .modal-footer .btn-primary");
+        await confirmButton.trigger("click");
+        await flushPromises();
+
+        // Assert modal still contains success message
+        const successAlert = wrapper.find("#create-tool-modal .alert-success");
+        expect(successAlert.exists()).toBe(true);
+        expect(successAlert.text()).toContain("Tool created successfully");
+
+        // Assert modal element is visible in DOM
+        const modal = wrapper.find("#create-tool-modal");
+        expect(modal.exists()).toBe(true);
+    });
+
+    it("should display error and keep modal open on failed tool creation", async () => {
+        const axiosMock = new MockAdapter(axios);
+        axiosMock.onPost("/api/tools/create_tool_config/").reply(403, { message: "Permission denied" });
+        axiosMock.onGet(`/api/tools?in_panel=False`).reply(200, toolsList);
+        axiosMock.onGet(TEST_PANELS_URI).reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsListJson });
+        axiosMock.onGet(/\/api\/tool_panels\/.*/).reply(200, toolsListInPanel);
+
+        const { wrapper } = await createWrapperWithToolBox(axiosMock);
+
+        // Click create tool button to open modal
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        const createButton = toolBox.find("#create-tool-button");
+        await createButton.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        // Enter tool name in the modal input
+        const input = wrapper.find("input[placeholder='Enter tool name']");
+        await input.setValue("test_tool");
+        await wrapper.vm.$nextTick();
+
+        // Click create button
+        const confirmButton = wrapper.find("#create-tool-modal .modal-footer .btn-primary");
+        await confirmButton.trigger("click");
+        await flushPromises();
+
+        // Assert error is displayed and modal stays open
+        const errorAlert = wrapper.find("#create-tool-modal .alert-danger");
+        expect(errorAlert.exists()).toBe(true);
+        expect(errorAlert.text()).toContain("Permission denied");
+
+        // Modal should still be visible
+        const modal = wrapper.find("#create-tool-modal");
+        expect(modal.exists()).toBe(true);
+    });
+
+    it("should show edit modal when edit is triggered", async () => {
+        const { wrapper } = await createWrapperWithToolBox();
+
+        // Find the ToolBox component and trigger edit
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        expect(toolBox.exists()).toBe(true);
+
+        // Emit the onEditTool event from ToolBox
+        toolBox.vm.$emit("onEditTool", "tool_id_123", "Original Tool Name");
+        await wrapper.vm.$nextTick();
+
+        // Modal should be visible
+        const modal = wrapper.find("#edit-tool-modal");
+        expect(modal.exists()).toBe(true);
+        expect(modal.isVisible()).toBe(true);
+    });
+
+    it("should keep modal open after successful tool edit", async () => {
+        const axiosMock = new MockAdapter(axios);
+        axiosMock.onPost("/api/tools/edit_tool_config/").reply(200);
+        axiosMock.onGet(/api\/tools/).reply(200, toolsList);
+        axiosMock.onGet(`/api/tools?in_panel=False`).reply(200, toolsList);
+        axiosMock.onGet(TEST_PANELS_URI).reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsListJson });
+        axiosMock.onGet(/\/api\/tool_panels\/.*/).reply(200, toolsListInPanel);
+
+        const { wrapper } = await createWrapperWithToolBox(axiosMock);
+
+        // Find the ToolBox component and trigger edit
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        toolBox.vm.$emit("onEditTool", "tool_123", "Updated Tool Name");
+        await wrapper.vm.$nextTick();
+
+        // Enter new tool name in the modal input
+        const input = wrapper.find("#edit-tool-modal input[placeholder='Enter tool name']");
+        await input.setValue("Updated Tool Name");
+        await wrapper.vm.$nextTick();
+
+        // Click save button
+        const saveButton = wrapper.find("#edit-tool-modal .modal-footer .btn-primary");
+        await saveButton.trigger("click");
+        await flushPromises();
+
+        // Assert modal still contains success message
+        const successAlert = wrapper.find("#edit-tool-modal .alert-success");
+        expect(successAlert.exists()).toBe(true);
+        expect(successAlert.text()).toContain("Tool updated successfully");
+
+        // Modal should still be open
+        const modal = wrapper.find("#edit-tool-modal");
+        expect(modal.exists()).toBe(true);
+    });
+
+    it("should persist modal state across ToolBox re-renders", async () => {
+        const axiosMock = new MockAdapter(axios);
+        axiosMock.onPost("/api/tools/create_tool_config/").reply(200, { id: "new_tool" });
+        axiosMock.onGet(/api\/tools/).reply(200, toolsList);
+        axiosMock
+            .onGet(`/api/tools?in_panel=False`)
+            .replyOnce(200, toolsList)
+            .onGet(`/api/tools?in_panel=False`)
+            .replyOnce(200, [...toolsList, { id: "new_tool", name: "test_tool" }]);
+        axiosMock.onGet(TEST_PANELS_URI).reply(200, { default_panel_view: DEFAULT_VIEW_ID, views: viewsListJson });
+        axiosMock.onGet(/\/api\/tool_panels\/.*/).reply(200, toolsListInPanel);
+
+        const { wrapper } = await createWrapperWithToolBox(axiosMock);
+
+        // Click create tool button to open modal
+        const toolBox = wrapper.findComponent({ name: "ToolBox" });
+        const createButton = toolBox.find("#create-tool-button");
+        await createButton.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        // Enter tool name
+        const input = wrapper.find("input[placeholder='Enter tool name']");
+        await input.setValue("test_tool");
+        await wrapper.vm.$nextTick();
+
+        // Click create button
+        const confirmButton = wrapper.find("#create-tool-modal .modal-footer .btn-primary");
+        await confirmButton.trigger("click");
+        await flushPromises();
+
+        // Modal should still be open with success message
+        const successAlert = wrapper.find("#create-tool-modal .alert-success");
+        expect(successAlert.exists()).toBe(true);
+
+        // Even after tool refresh, modal should still be open
+        const modal = wrapper.find("#create-tool-modal");
+        expect(modal.exists()).toBe(true);
+        expect(modal.isVisible()).toBe(true);
     });
 });

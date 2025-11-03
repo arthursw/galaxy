@@ -1234,7 +1234,7 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
         if tool_id is None:
             tool_id = re.sub(r'[^\w _\-.]', '_', tool_name.lower())
         if tool_id in self._tool_versions_by_id:
-            return {"name": tool_name, "id": tool_id}, f"error: tool already exists"
+            return f"Tool with id '{tool_id}' already exists", "error"
         tools_path = Path(galaxy_directory()) / "tools"
         local_tools_path = tools_path / "local_tools"
         local_tool_path = local_tools_path / tool_id
