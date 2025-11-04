@@ -3,6 +3,7 @@ import { computed, reactive, ref, set, type UnwrapRef } from "vue";
 
 import type { OutputTerminals } from "@/components/Workflow/Editor/modules/terminals";
 import reportDefault from "@/components/Workflow/Editor/reportDefault";
+import { useUserLocalStorage } from "@/composables/userLocalStorage";
 
 import { defineScopedStore } from "./scopedStore";
 
@@ -45,6 +46,7 @@ export const useWorkflowStateStore = defineScopedStore("workflowStateStore", () 
     const stepLoadingState = ref<StepLoadingState>({});
     const multiSelectedSteps = ref<Record<number, boolean>>({});
     const hasChanges = ref(false);
+    const activeTab = useUserLocalStorage<"none" | "dataset" | "run">("workflow-editor-active-tab", "none");
     const report = ref<WorkflowReport>({
         markdown: reportDefault,
     });
@@ -141,6 +143,7 @@ export const useWorkflowStateStore = defineScopedStore("workflowStateStore", () 
         draggingPosition,
         draggingTerminal,
         activeNodeId,
+        activeTab,
         scale,
         report,
         hasChanges,

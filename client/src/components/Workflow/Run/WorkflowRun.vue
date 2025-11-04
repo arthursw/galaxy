@@ -50,6 +50,11 @@ const props = withDefaults(defineProps<Props>(), {
     goToInvocationsOnRunLaunch: true,
 });
 
+const emit = defineEmits<{
+    (e: "executionStarted"): void;
+    (e: "backToEditor"): void;
+}>();
+
 const loading = ref(true);
 const hasUpgradeMessages = ref(false);
 const hasStepVersionChanges = ref(false);
@@ -103,6 +108,8 @@ function handleInvocations(incomingInvocations: any) {
         invocations.value.forEach((invocation: any) => {
             historyStore.getHistoryById(invocation.history_id);
         });
+        // Emit event to notify that execution has started
+        emit("executionStarted");
     }
 }
 
@@ -228,7 +235,8 @@ defineExpose({
             <WorkflowRunSuccess
                 v-else-if="invocations.length > 0"
                 :invocations="invocations"
-                :workflow-name="workflowName" />
+                :workflow-name="workflowName"
+                @backToEditor="emit('backToEditor')" />
             <div v-else class="h-100">
                 <BAlert
                     v-if="hasUpgradeMessages || hasStepVersionChanges"
