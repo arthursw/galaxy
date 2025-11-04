@@ -18,6 +18,7 @@ import type { OutputTerminals } from "./modules/terminals";
 import { maxZoom, minZoom } from "./modules/zoomLevels";
 
 import AdaptiveGrid from "./AdaptiveGrid.vue";
+import BottomTabs from "./BottomTabs.vue";
 import WorkflowComment from "./Comments/WorkflowComment.vue";
 import BoxSelectPreview from "./Tools/BoxSelectPreview.vue";
 import InputCatcher from "./Tools/InputCatcher.vue";
@@ -45,10 +46,10 @@ const props = defineProps({
     workflowId: { type: String, default: undefined },
 });
 
-const { stateStore, stepStore, toolbarStore } = useWorkflowStores();
+const { stateStore, stepStore } = useWorkflowStores();
 const inspectorStore = useWorkflowNodeInspectorStore();
 
-const { scale, activeNodeId, draggingPosition, draggingTerminal } = storeToRefs(stateStore);
+const { scale, activeNodeId, draggingPosition, draggingTerminal, activeTab } = storeToRefs(stateStore);
 const activeStep = computed(() => {
     if (activeNodeId.value !== null) {
         return props.steps[activeNodeId.value];
@@ -159,6 +160,16 @@ function onDeactivate() {
     stateStore.activeNodeId = null;
 }
 
+function onWorkflowExecutionStarted() {
+    // Maximize the run tab when execution starts
+    activeTab.value = "run";
+}
+
+function onBackToEditor() {
+    // Minimize the run tab when user clicks back to editor
+    activeTab.value = "none";
+}
+
 watch(
     () => transform.value.k,
     () => (stateStore.scale = transform.value.k)
@@ -186,7 +197,7 @@ defineExpose({
 <template>
     <div id="workflow-canvas" class="unified-panel-body workflow-canvas">
         <ZoomControl
-            v-if="props.showZoomControls && !toolbarStore.runWorkflowVisible && !toolbarStore.datasetTableVisible"
+            v-if="props.showZoomControls && activeTab === 'none'"
             :zoom-level="scale"
             :pan="transform"
             @onZoom="zoomTo"
@@ -242,29 +253,31 @@ defineExpose({
                     @pan-by="panBy" />
             </div>
         </div>
-        
-        <div v-if="(toolbarStore.datasetTableVisible || toolbarStore.runWorkflowVisible) && props.workflowId" id="bottom-dock" :style="bottomDockStyle">
-            
-            <div v-if="toolbarStore.datasetTableVisible && props.workflowId" class="dataset-table">
+
+        <div v-if="props.workflowId" id="bottom-dock-wrapper" :class="{ expanded: activeTab !== 'none' }" :style="activeTab !== 'none' ? bottomDockStyle : {}">
+            <BottomTabs />
+
+            <div v-if="activeTab === 'dataset' && props.workflowId" class="dataset-table">
                 <DatasetDisplayTable
                     :workflow-id="props.workflowId"
                     :active-step-id="activeNodeId"
                 />
             </div>
-            
-            <div v-if="toolbarStore.runWorkflowVisible && props.workflowId" class="workflow-run">
+
+            <div v-if="activeTab === 'run' && props.workflowId" class="workflow-run">
                 <WorkflowRun
                     :workflow-id="props.workflowId"
                     :prefer-simple-form="true"
                     :request-state="undefined"
                     :instance="false"
-                    :go-to-invocations-on-run-launch="false" />
+                    :go-to-invocations-on-run-launch="false"
+                    @executionStarted="onWorkflowExecutionStarted"
+                    @backToEditor="onBackToEditor" />
             </div>
-                
         </div>
 
         <WorkflowMinimap
-            v-if="elementBounding && props.showMinimap && !toolbarStore.runWorkflowVisible && !toolbarStore.datasetTableVisible"
+            v-if="elementBounding && props.showMinimap && activeTab === 'none'"
             :steps="steps"
             :comments="comments"
             :viewport-bounds="elementBounding"
@@ -295,21 +308,29 @@ defineExpose({
         height: 100%;
         transform-origin: 0 0;
     }
-    #bottom-dock {
+    #bottom-dock-wrapper {
         position: absolute;
         bottom: 0;
         left: 0;
         padding-left: 45px;
-        /* width: 100%; */
-        transform-origin: 0 0;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
         background: white;
-        max-height: 75%;
-        min-height: 60%;
-        overflow: auto;
         border-color: #bdc6d0;
         border-width: 1px;
         border-style: solid;
-        border-radius: 0.5rem 0 0 0.5rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+
+        &:not(.expanded) {
+            max-height: 44px;
+            overflow: hidden;
+        }
+
+        &.expanded {
+            max-height: 75%;
+            overflow: auto;
+        }
     }
 }
 </style>

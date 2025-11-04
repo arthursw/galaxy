@@ -17,7 +17,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { useMagicKeys, whenever } from "@vueuse/core";
 import { BFormInput } from "bootstrap-vue";
 //@ts-ignore deprecated package without types (vue 2, remove this comment on vue 3 migration)
-import { BoxSelect, Play, Table2, Workflow } from "lucide-vue";
+import { BoxSelect, Workflow } from "lucide-vue";
 import { storeToRefs } from "pinia";
 import { computed, toRefs, watch } from "vue";
 
@@ -280,34 +280,6 @@ function autoLayout() {
                     @click="autoLayout">
                     <Workflow />
                 </GButton>
-
-
-                <GButtonGroup vertical>
-                    <GButton
-                        tooltip
-                        tooltip-placement="right"
-                        outline
-                        color="blue"
-                        title="Show run workflow"
-                        data-tool="show_run_workflow"
-                        :pressed="toolbarStore.runWorkflowVisible"
-                        class="button"
-                        @click="() => toolbarStore.runWorkflowVisible = !toolbarStore.runWorkflowVisible">
-                        <Play />
-                    </GButton>
-                    <GButton
-                        tooltip
-                        tooltip-placement="right"
-                        outline
-                        color="blue"
-                        title="Show Step Datasets"
-                        data-tool="show_step_datasets"
-                        :pressed="toolbarStore.datasetTableVisible"
-                        class="button"
-                        @click="() => toolbarStore.datasetTableVisible = !toolbarStore.datasetTableVisible">
-                        <Table2 />
-                    </GButton>
-                </GButtonGroup>
 
 
             </template>

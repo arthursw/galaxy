@@ -1,76 +1,86 @@
 <template>
-  <div v-if="activeStepId" class="dataset-table">
-    <div class="bg-secondary px-2 py-1 rounded d-flex flex-gapx-1 justify-content-between">
-      <b>Outputs for Step: {{ activeStepId }}</b>
+  <div class="dataset-table-container">
+    <div v-if="!activeStepId" class="no-data-message">
+      <p>No data to display</p>
+      <small>Select a step to view its outputs</small>
     </div>
 
-    <div v-if="loading">Loading datasets...</div>
-    <div v-if="error" class="error">{{ error }}</div>
-
-    <table v-if="datasets.length > 0" class="outputs-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Extension</th>
-          <th>Preview</th>
-          <th>Download</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="dataset in datasets" :key="dataset.id">
-          <td>{{ dataset.name }}</td>
-          <td>{{ dataset.extension }}</td>
-          <td>
-            <img
-              v-if="isImage(dataset.extension)"
-              :src="getThumbnailUrl(dataset)"
-              alt="Preview"
-              style="width: 80px; height: auto; border: 1px solid #ccc;"
-            />
-            <!-- <button
-              v-else-if="dataset.data_type.includes('tabular')"
-              @click="openPreview(dataset)"
-            >
-              Preview
-            </button> -->
-            <iframe
-              v-else-if="dataset.data_type && dataset.data_type.includes('tabular')"
-              title="uid"
-              :src="`/datasets/${dataset.id}/display/?preview=True`"
-              width="600"
-              height="400"
-              style="border: none;"
-            ></iframe>
-            <span v-else>-</span>
-          </td>
-          <td>
-            <a
-              :href="`${galaxyBaseUrl}${dataset.download_url}`"
-              target="_blank"
-            >
-              Download
-            </a>
-
-            <button v-if="isImage(dataset.extension)" @click="openInNapari(dataset.id)">Open in Napari</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Modal for tabular preview -->
-    <!-- <div v-if="previewDataset" class="modal">
-      <div class="modal-content">
-        <h4>{{ previewDataset.name }} Preview</h4>
-        <iframe
-          title="uid"
-          :src="`/datasets/${previewDataset.id}/display/?preview=True`"
-          width="600"
-          height="400"
-          style="border: none;"
-        ></iframe>
-        <button @click="closePreview">Close</button>
+    <div v-else class="dataset-table">
+      <div class="bg-secondary px-2 py-1 rounded d-flex flex-gapx-1 justify-content-between">
+        <b>Outputs for Step: {{ activeStepId }}</b>
       </div>
-    </div> -->
+
+      <div v-if="loading">Loading datasets...</div>
+      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-else-if="datasets.length === 0" class="no-data-message">
+        <p>No data to display</p>
+      </div>
+
+      <table v-if="datasets.length > 0" class="outputs-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Extension</th>
+            <th>Preview</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="dataset in datasets" :key="dataset.id">
+            <td>{{ dataset.name }}</td>
+            <td>{{ dataset.extension }}</td>
+            <td>
+              <img
+                v-if="isImage(dataset.extension)"
+                :src="getThumbnailUrl(dataset)"
+                alt="Preview"
+                style="width: 80px; height: auto; border: 1px solid #ccc;"
+              />
+              <!-- <button
+                v-else-if="dataset.data_type.includes('tabular')"
+                @click="openPreview(dataset)"
+              >
+                Preview
+              </button> -->
+              <iframe
+                v-else-if="dataset.data_type && dataset.data_type.includes('tabular')"
+                title="uid"
+                :src="`/datasets/${dataset.id}/display/?preview=True`"
+                width="600"
+                height="400"
+                style="border: none;"
+              ></iframe>
+              <span v-else>-</span>
+            </td>
+            <td>
+              <a
+                :href="`${galaxyBaseUrl}${dataset.download_url}`"
+                target="_blank"
+              >
+                Download
+              </a>
+
+              <button v-if="isImage(dataset.extension)" @click="openInNapari(dataset.id)">Open in Napari</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Modal for tabular preview -->
+      <!-- <div v-if="previewDataset" class="modal">
+        <div class="modal-content">
+          <h4>{{ previewDataset.name }} Preview</h4>
+          <iframe
+            title="uid"
+            :src="`/datasets/${previewDataset.id}/display/?preview=True`"
+            width="600"
+            height="400"
+            style="border: none;"
+          ></iframe>
+          <button @click="closePreview">Close</button>
+        </div>
+      </div> -->
+    </div>
   </div>
 </template>
 
@@ -240,6 +250,41 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.dataset-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.no-data-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #666;
+  font-size: 14px;
+  min-height: 60px;
+}
+
+.no-data-message p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.no-data-message small {
+  margin-top: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+.dataset-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: auto;
+}
+
 .outputs-table {
   border-collapse: collapse;
   width: 100%;
@@ -268,5 +313,13 @@ export default defineComponent({
   margin: 50px auto;
   max-width: 700px;
   border-radius: 6px;
+}
+
+.error {
+  color: #d32f2f;
+  padding: 12px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 10px 0;
 }
 </style>

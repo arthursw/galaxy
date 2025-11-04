@@ -69,7 +69,7 @@ function onZoomReset() {
 .zoom-control {
     position: absolute;
     left: 1rem;
-    bottom: 1rem;
+    bottom: 3rem;
     cursor: pointer;
     z-index: 2000;
 }
