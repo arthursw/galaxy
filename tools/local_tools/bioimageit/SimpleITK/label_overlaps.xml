@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<tool id="label_overlaps" name="Label overlaps" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/label_overlaps_galaxy_wrapper.py' '${label1}' '${label2}'</command>
+    <inputs>
+        <param name="label1" argument="--label1" type="data" format="png,tiff,tif" label="Input label image 1" help="Input label image 1" optional="false"/>
+        <param name="label2" argument="--label2" type="data" format="png,tiff,tif" label="Input label image 2" help="Input label image 2" optional="false"/>
+    </inputs>
+    <help>
+
+Compute label overlap statistics from two label images.
+
+</help>
+</tool>

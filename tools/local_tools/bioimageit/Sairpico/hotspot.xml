@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="hotspot" name="Hotspot Detection" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::hotspot==1.0.0|osx-64,osx-arm64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/HotSpot_galaxy_wrapper.py' '${input_image}' --patch_size '${patch_size}' --neighborhood_size '${neighborhood_size}' --p_value '${p_value}' '${output}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input Image" help="Input Image" optional="false"/>
+        <param name="patch_size" argument="--patch_size" type="integer" value="3" label="Patch size (radius)" help="Patch size (radius)"/>
+        <param name="neighborhood_size" argument="--neighborhood_size" type="integer" value="5" label="Neighborhood size (radius)" help="Neighborhood size (radius)"/>
+        <param name="p_value" argument="--p_value" type="float" value="0.2" label="p-value for false alarm" help="p-value for false alarm"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/arbaGFPProjDebruiteNorm.tif"/>
+            <param name="output" value="test-data/result.tif"/>
+            <assert_contents file="output"/>
+        </test>
+    </tests>
+    <help>
+
+Hotspot detection in microscopy images.
+
+</help>
+</tool>

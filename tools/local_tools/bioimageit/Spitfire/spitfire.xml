@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<tool id="spitfire" name="Spitfire" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sylvainprigent::simglib|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/spitfire_galaxy_wrapper.py' '${input_image}' --type '${type}' --regularization '${regularization}' --weighting '${weighting}' --method '${method}' --padding ${padding} '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path. The dimensions (width, height, depth) of the image should be even for best results." help="The input image path. The dimensions (width, height, depth) of the image should be even for best results." optional="false"/>
+        <param name="type" argument="--type" type="text" value="2D" label="Perform 2D, 3D or 4D deconvolution." help="Perform 2D, 3D or 4D deconvolution.">
+            <option value="2D" selected="true">2D</option>
+            <option value="3D">3D</option>
+            <option value="4D">4D</option>
+        </param>
+        <param name="regularization" argument="--regularization" type="float" value="2" label="Regularization parameter pow(2,-x)." help="Regularization parameter pow(2,-x)."/>
+        <param name="weighting" argument="--weighting" type="float" value="0.6" label="Weighting. Regularization parameter pow(2,-x). Must be in range [0.0, 1.0]." help="Weighting. Regularization parameter pow(2,-x). Must be in range [0.0, 1.0]."/>
+        <param name="method" argument="--method" type="text" value="Hessian variation" label="Method." help="Method.">
+            <option value="Sparse variation">Sparse variation</option>
+            <option value="Hessian variation" selected="true">Hessian variation</option>
+        </param>
+        <param name="padding" argument="--padding" type="boolean" checked="false" label="Add a padding to process pixels in borders." help="Add a padding to process pixels in borders."/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <help>
+
+SPITFIR(e) utilizes the primal-dual optimization principle for fast energy minimization. Experimental results in various microscopy modalities from wide field up to lattice light sheet demonstrate the ability of the SPITFIR(e) algorithm to efficiently reduce noise, blur, and out-of-focus background, while avoiding the emergence of deconvolution artifacts.
+
+</help>
+</tool>

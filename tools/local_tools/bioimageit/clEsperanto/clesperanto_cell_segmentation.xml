@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_cell_segmentation" name="clEsperanto Cell Segmentation" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_cell_segmentation_galaxy_wrapper.py' '${input_image}' --corrected_binary ${corrected_binary} --radius_x '${radius_x}' --radius_y '${radius_y}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="corrected_binary" argument="--corrected_binary" type="boolean" checked="false" label="if non corrected is not good" help="if non corrected is not good"/>
+        <param name="radius_x" argument="--radius_x" type="float" value="10" label="radius_x" help="radius_x"/>
+        <param name="radius_y" argument="--radius_y" type="float" value="10" label="radius_y" help="radius_y"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/AICS_12_134_C=0.tif"/>
+            <param name="corrected_binary"/>
+            <param name="out" value="test-data/AICS_12_134_C=0_mask.tif"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Cell segmentation with clEsperanto.
+
+</help>
+</tool>

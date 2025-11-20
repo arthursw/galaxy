@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<tool id="columnregex" name="Column regex" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/ColumnRegex_galaxy_wrapper.py' --columnName '${columnName}' --regex '${regex}'</command>
+    <inputs>
+        <param name="columnName" argument="--columnName" type="text" label="Column name" help="Column name" optional="false"/>
+        <param name="regex" argument="--regex" type="text" value="(?P&lt;column1&gt;\w+)_(?P&lt;column2&gt;\w+)" label="Regex" help="Regex"/>
+        <param name="input_dataframe" argument="--input_dataframe" type="data" format="csv,tabular" optional="true" label="Input DataFrame (CSV)" help="Optional CSV file containing input DataFrame for batch processing"/>
+    </inputs>
+    <help>
+
+Create columns from a regex.
+
+</help>
+</tool>

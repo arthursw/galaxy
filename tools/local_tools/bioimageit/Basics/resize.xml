@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<tool id="resize" name="Resize image" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/resize_galaxy_wrapper.py' '${input_image}' --width '${width}' --height '${height}' --depth '${depth}' --scale '${scale}' --interpolation '${interpolation}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path" optional="false"/>
+        <param name="width" argument="--width" type="integer" label="Target width (in pixels). If not provided, computed from scale or original size." help="Target width (in pixels). If not provided, computed from scale or original size."/>
+        <param name="height" argument="--height" type="integer" label="Target height (in pixels). If not provided, computed from scale or original size." help="Target height (in pixels). If not provided, computed from scale or original size."/>
+        <param name="depth" argument="--depth" type="integer" label="Target depth (in pixels, for 3D images). If not provided, computed from scale or original size." help="Target depth (in pixels, for 3D images). If not provided, computed from scale or original size."/>
+        <param name="scale" argument="--scale" type="float" label="Scaling factor. Ignored if width/height/depth are all specified." help="Scaling factor. Ignored if width/height/depth are all specified."/>
+        <param name="interpolation" argument="--interpolation" type="text" value="linear" label="Interpolation method: nearest, linear, bspline, lanczos, or label" help="Interpolation method: nearest, linear, bspline, lanczos, or label">
+            <option value="nearest">nearest</option>
+            <option value="linear" selected="true">linear</option>
+            <option value="bspline">bspline</option>
+            <option value="lanczos">lanczos</option>
+            <option value="label">label</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <help>
+
+Resize an image either to given dimensions or by a scale factor.
+
+</help>
+</tool>

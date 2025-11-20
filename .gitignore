@@ -205,3 +205,7 @@ pixi/
 workflow_execution/
 .claude/
 tools/local_tools/*/.vscode/
+
+tools/local_tools/bioimageit/*/test-data
+tools/local_tools/bioimageit/Fiji/
+wetlands/

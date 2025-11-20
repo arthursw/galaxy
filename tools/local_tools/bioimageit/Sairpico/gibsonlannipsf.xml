@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<tool id="gibsonlannipsf" name="GibsonLanniPSF" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sylvainprigent::simglib=0.1.2|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/GibsonLanniPSF_galaxy_wrapper.py' --width '${width}' --height '${height}' --depth '${depth}' --wavelength '${wavelength}' --psxy '${psxy}' --psz '${psz}' --na '${na}' --ni '${ni}' --ns '${ns}' --ti '${ti}' '${output}'</command>
+    <inputs>
+        <param name="width" argument="--width" type="integer" value="256" label="Image width" help="Image width"/>
+        <param name="height" argument="--height" type="integer" value="256" label="Image height" help="Image height"/>
+        <param name="depth" argument="--depth" type="integer" value="20" label="Image depth" help="Image depth"/>
+        <param name="wavelength" argument="--wavelength" type="float" value="610" label="Excitation wavelength (nm)" help="Excitation wavelength (nm)"/>
+        <param name="psxy" argument="--psxy" type="float" value="100" label="Pixel size in XY (nm)" help="Pixel size in XY (nm)"/>
+        <param name="psz" argument="--psz" type="float" value="250" label="Pixel size in Z (nm)" help="Pixel size in Z (nm)"/>
+        <param name="na" argument="--na" type="float" value="1.4" label="Numerical Aperture" help="Numerical Aperture"/>
+        <param name="ni" argument="--ni" type="float" value="1.5" label="Refractive index immersion" help="Refractive index immersion"/>
+        <param name="ns" argument="--ns" type="float" value="1.3" label="Refractive index sample" help="Refractive index sample"/>
+        <param name="ti" argument="--ti" type="float" value="150" label="Working distance (mum)" help="Working distance (mum)"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tiff"/>
+    </outputs>
+    <help>
+
+3D Gibson-Lanni PSF.
+
+</help>
+</tool>

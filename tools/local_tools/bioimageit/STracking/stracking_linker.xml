@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<tool id="stracking_linker" name="Stracking Linker" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::stracking==0.1.5|osx-arm64</requirement>
+        <requirement type="package">bioimageit::stracking==v0.1.4|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">numpy==1.24.4</requirement>
+        <requirement type="package">scipy==1.9.3</requirement>
+        <requirement type="package">scikit-image==0.19.3</requirement>
+        <requirement type="package">pandas==1.5.3</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/stracking_linker_galaxy_wrapper.py' '${input_csv}' --max_connection_cost '${max_connection_cost}' --gap '${gap}' '${output}'</command>
+    <inputs>
+        <param name="input_csv" argument="--input_csv" type="data" format="png,tiff,tif" label="Input csv from a stracking detector" help="Input csv from a stracking detector" optional="false"/>
+        <param name="max_connection_cost" argument="--max_connection_cost" type="float" value="3000" label="Maximum connection cost (squared maximum Euclidean distance that a particle can move between two consecutive frames)" help="Maximum connection cost (squared maximum Euclidean distance that a particle can move between two consecutive frames)"/>
+        <param name="gap" argument="--gap" type="integer" value="2" label="For example if gap=2, particles 2 frames apart can be connected" help="For example if gap=2, particles 2 frames apart can be connected"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+Linking of particles detected in stracking.
+
+</help>
+</tool>

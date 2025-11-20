@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<tool id="stardist_segment" name="Stardist" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">tensorflow==2.16.1</requirement>
+        <requirement type="package">csbdeep==0.8.1</requirement>
+        <requirement type="package">stardist==0.9.1</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/stardist_segment_galaxy_wrapper.py' '${input_image}' --model_name '${model_name}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="model_name" argument="--model_name" type="text" label="The model to use." help="The model to use." optional="false">
+            <option value="2D_versatile_fluo">2D_versatile_fluo</option>
+            <option value="2D_versatile_he">2D_versatile_he</option>
+            <option value="2D_paper_dsb2018">2D_paper_dsb2018</option>
+            <option value="2D_demo">2D_demo</option>
+            <option value="3D_demo">3D_demo</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <help>
+
+Segment cells with stardist.
+
+</help>
+</tool>

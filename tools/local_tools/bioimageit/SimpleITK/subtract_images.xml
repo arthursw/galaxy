@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<tool id="subtract_images" name="Subtract images" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/subtract_images_galaxy_wrapper.py' '${image1}' '${image2}' '${out}'</command>
+    <inputs>
+        <param name="image1" argument="--image1" type="data" format="png,tiff,tif" label="Input image 1" help="Input image 1" optional="false"/>
+        <param name="image2" argument="--image2" type="data" format="png,tiff,tif" label="Input image 2" help="Input image 2" optional="false"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <help>
+
+Subtract images.
+
+</help>
+</tool>

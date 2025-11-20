@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<tool id="convert" name="Convert Image BioIO" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/convert_galaxy_wrapper.py' '${input_image}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image" help="Input image" optional="false"/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="tiff"/>
+    </outputs>
+    <help>
+
+Read and write an image with BioIO.
+
+</help>
+</tool>

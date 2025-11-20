@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<tool id="listfiles" name="List Files" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/ListFiles_galaxy_wrapper.py' '${folderPath}' --filter '${filter}' --columnName '${columnName}'</command>
+    <inputs>
+        <param name="folderPath" argument="--folderPath" type="data" format="png,tiff,tif" label="Folder path" help="Folder path" optional="false"/>
+        <param name="filter" argument="--filter" type="text" value="*" label="Filter the files" help="Filter the files"/>
+        <param name="columnName" argument="--columnName" type="text" value="path" label="Column name" help="Column name"/>
+        <param name="input_dataframe" argument="--input_dataframe" type="data" format="csv,tabular" optional="true" label="Input DataFrame (CSV)" help="Optional CSV file containing input DataFrame for batch processing"/>
+    </inputs>
+    <help>
+
+Reads a folder and creates a pandas DataFrame from the file list.
+
+</help>
+</tool>

@@ -29,7 +29,7 @@ const emit = defineEmits<{
     (e: "onCreateTool"): void;
     (e: "onDeleteTool", toolId: string): void;
     (e: "onEditTool", toolId: string, toolName: string): void;
-    (e: "onOpenTool", toolId: string): void;
+    (e: "onOpenTool", tool: Tool): void;
 }>();
 
 const props = defineProps({
@@ -280,7 +280,7 @@ async function confirmDeleteTool() {
 }
 
 async function onOpenToolClick(tool: Tool) {
-    emit("onOpenTool", tool.id);
+    emit("onOpenTool", tool);
 }
 </script>
 

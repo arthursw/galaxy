@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<tool id="segment" name="Segment" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/segment_galaxy_wrapper.py' '${movie}' '${model_weights}' --patch_size '${patch_size}' --visualization ${visualization} '${segmentation}'</command>
+    <inputs>
+        <param name="movie" argument="--movie" type="data" format="png,tiff,tif" label="Exocytosis movie (in .h5 format)." help="Exocytosis movie (in .h5 format)." optional="false"/>
+        <param name="model_weights" argument="--model_weights" type="data" format="png,tiff,tif" label="Model weigths (in .h5 format)." help="Model weigths (in .h5 format)."/>
+        <param name="patch_size" argument="--patch_size" type="integer" value="160" label="Patch size (the movie is split in cubes of --patch_size before being processed). Must be a multiple of 4." help="Patch size (the movie is split in cubes of --patch_size before being processed). Must be a multiple of 4."/>
+        <param name="visualization" argument="--visualization" type="boolean" checked="false" label="Generate visualization images." help="Generate visualization images."/>
+    </inputs>
+    <outputs>
+        <data name="segmentation" format="txt"/>
+    </outputs>
+    <help>
+
+Segment exocytosis events.
+
+</help>
+</tool>

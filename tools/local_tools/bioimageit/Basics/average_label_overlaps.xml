@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<tool id="average_label_overlaps" name="Count label overlaps" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/average_label_overlaps_galaxy_wrapper.py' --label1_min '${label1_min}' --label1_max '${label1_max}' --average ${average}</command>
+    <inputs>
+        <param name="label1_min" argument="--label1_min" type="float" label="The minimum value of label1 to keep. Ignored if None (None by default)." help="The minimum value of label1 to keep. Ignored if None (None by default)."/>
+        <param name="label1_max" argument="--label1_max" type="float" label="The maximum value of label1 to keep. Ignored if None (None by default)." help="The maximum value of label1 to keep. Ignored if None (None by default)."/>
+        <param name="average" argument="--average" type="boolean" checked="false" label="Compute average number of label2 per label1 instead of number of label2 by label1" help="Compute average number of label2 per label1 instead of number of label2 by label1"/>
+        <param name="input_dataframe" argument="--input_dataframe" type="data" format="csv,tabular" optional="true" label="Input DataFrame (CSV)" help="Optional CSV file containing input DataFrame for batch processing"/>
+    </inputs>
+    <help>
+
+Count the number (or average number) of overlapping labels. For example: 3 label2 on label1 number 1, 4 label2 on label1 number 2, etc. If average is true, the average number of label2 per label1 is returned.
+
+</help>
+</tool>

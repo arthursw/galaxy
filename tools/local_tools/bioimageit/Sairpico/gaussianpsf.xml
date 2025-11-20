@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<tool id="gaussianpsf" name="PSF" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sylvainprigent::simglib=0.1.2|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/GaussianPSF_galaxy_wrapper.py' --width '${width}' --height '${height}' --depth '${depth}' --sigmaxy '${sigmaxy}' --sigmaz '${sigmaz}' '${output}'</command>
+    <inputs>
+        <param name="width" argument="--width" type="integer" value="256" label="Image width" help="Image width"/>
+        <param name="height" argument="--height" type="integer" value="256" label="Image height" help="Image height"/>
+        <param name="depth" argument="--depth" type="integer" value="20" label="Image depth" help="Image depth"/>
+        <param name="sigmaxy" argument="--sigmaxy" type="float" value="1.0" label="PSF width and height" help="PSF width and height"/>
+        <param name="sigmaz" argument="--sigmaz" type="float" value="1.0" label="PSF depth" help="PSF depth"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="tiff"/>
+    </outputs>
+    <help>
+
+3D Gaussian PSF.
+
+</help>
+</tool>

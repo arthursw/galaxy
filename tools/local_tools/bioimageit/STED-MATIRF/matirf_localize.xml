@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="matirf_localize" name="MATIRF Localize" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::matirf|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/matirf_localize_galaxy_wrapper.py' '${input_image}' '${microscope_params}' --depth '${depth}' --nplanes '${nplanes}' --lambda '${lambda}' --gamma '${gamma}' --iterations '${iterations}' --reg_type '${reg_type}' --zmin '${zmin}' --mode '${mode}' --object_size_nm '${object_size_nm}' '${output}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Path to the input image." help="Path to the input image." optional="false"/>
+        <param name="microscope_params" argument="--microscope_params" type="data" format="png,tiff,tif" label="Microscope parameters (json format)" help="Microscope parameters (json format)" optional="false"/>
+        <param name="depth" argument="--depth" type="float" value="500" label="Depth" help="Depth"/>
+        <param name="nplanes" argument="--nplanes" type="integer" value="20" label="Number of planes" help="Number of planes"/>
+        <param name="lambda" argument="--lambda" type="text" value="0.001,0.001" label="Regularization (XY,Z)" help="Regularization (XY,Z)"/>
+        <param name="gamma" argument="--gamma" type="float" value="10" label="Gamma / time step" help="Gamma / time step"/>
+        <param name="iterations" argument="--iterations" type="integer" value="1000" label="Number of iterations" help="Number of iterations"/>
+        <param name="reg_type" argument="--reg_type" type="integer" value="1" label="Regularization type" help="Regularization type"/>
+        <param name="zmin" argument="--zmin" type="integer" value="0" label="Z0" help="Z0"/>
+        <param name="mode" argument="--mode" type="integer" value="0" label="Mode (0:batch, 1:visu)" help="Mode (0:batch, 1:visu)"/>
+        <param name="object_size_nm" argument="--object_size_nm" type="integer" value="300" label="Objects size in nm" help="Objects size in nm"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+3D multi-angle TIRF image localizations.
+
+</help>
+</tool>

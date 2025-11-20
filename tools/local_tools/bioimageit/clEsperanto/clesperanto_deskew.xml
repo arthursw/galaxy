@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_deskew" name="clEsperanto Deskew" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_deskew_galaxy_wrapper.py' '${input_image}' --angle '${angle}' --voxel_size_x '${voxel_size_x}' --voxel_size_y '${voxel_size_y}' --voxel_size_z '${voxel_size_z}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="angle" argument="--angle" type="float" value="30" label="Deskewing angle in degrees" help="Deskewing angle in degrees"/>
+        <param name="voxel_size_x" argument="--voxel_size_x" type="float" value="0.202" label="voxel_size_x_in_microns" help="voxel_size_x_in_microns"/>
+        <param name="voxel_size_y" argument="--voxel_size_y" type="float" value="0.202" label="voxel_size_y_in_microns" help="voxel_size_y_in_microns"/>
+        <param name="voxel_size_z" argument="--voxel_size_z" type="float" value="1" label="voxel_size_z_in_microns" help="voxel_size_z_in_microns"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/deskew.tif"/>
+            <param name="voxel_size_x" value="0.1449922"/>
+            <param name="voxel_size_y" value="0.1449922"/>
+            <param name="voxel_size_z" value="0.3"/>
+            <param name="out" value="test-data/deskewed.tif"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Deskew with clEsperanto.
+
+</help>
+</tool>

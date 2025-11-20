@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<tool id="nd_safir" name="ND-Safir" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::ndsafir|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/nd_safir_galaxy_wrapper.py' '${input_image}' --type '${type}' --noise '${noise}' --patch '${patch}' --noise_factor '${noise_factor}' --n_iterations '${n_iterations}' --time_series ${time_series} --n_frames '${n_frames}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="type" argument="--type" type="text" value="2D" label="Perform 2D, 3D or 3D + time denoising." help="Perform 2D, 3D or 3D + time denoising.">
+            <option value="2D" selected="true">2D</option>
+            <option value="3D">3D</option>
+            <option value="4D">4D</option>
+        </param>
+        <param name="noise" argument="--noise" type="text" value="Gauss" label="Model used to evaluate the noise variance." help="Model used to evaluate the noise variance.">
+            <option value="Gauss" selected="true">Gauss</option>
+            <option value="Poisson-Gauss">Poisson-Gauss</option>
+            <option value="Adaptive-Gauss">Adaptive-Gauss</option>
+        </param>
+        <param name="patch" argument="--patch" type="text" value="7x7x1" label="Patch radius. Must be of the form AxB (for 2D) or AxBxC (for 3D) where A, B and C are the patch radius in each dimension." help="Patch radius. Must be of the form AxB (for 2D) or AxBxC (for 3D) where A, B and C are the patch radius in each dimension."/>
+        <param name="noise_factor" argument="--noise_factor" type="float" value="1" label="Noise factor." help="Noise factor."/>
+        <param name="n_iterations" argument="--n_iterations" type="integer" value="5" label="Number of iterations." help="Number of iterations."/>
+        <param name="time_series" argument="--time_series" type="boolean" checked="false" label="Consider the image as a sequence (for 3D only)." help="Consider the image as a sequence (for 3D only)."/>
+        <param name="n_frames" argument="--n_frames" type="integer" value="0" label="Number of frames to process in a batch. Use 0 to process everything at once (for 4D only)." help="Number of frames to process in a batch. Use 0 to process everything at once (for 4D only)."/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/03_rab_bruite.tif"/>
+            <param name="type" value="3D"/>
+            <param name="noise" value="Adaptive-Gauss"/>
+            <param name="noise_factor" value="2"/>
+            <param name="output_image" value="test-data/DN.tif"/>
+            <assert_contents file="output_image"/>
+        </test>
+    </tests>
+    <help>
+
+Denoising method dedicated to microscopy image and sequence analysis.
+
+</help>
+</tool>

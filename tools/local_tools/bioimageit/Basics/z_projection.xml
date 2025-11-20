@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="z_projection" name="ZProjection" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/z_projection_galaxy_wrapper.py' '${input_image}' --channel '${channel}' --projection_type '${projection_type}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="channel" argument="--channel" type="integer" value="2" label="The channel to extract." help="The channel to extract." optional="false"/>
+        <param name="projection_type" argument="--projection_type" type="text" label="The projection type." help="The projection type." optional="false">
+            <option value="Max">Max</option>
+            <option value="Min">Min</option>
+            <option value="Average">Average</option>
+            <option value="Sum">Sum</option>
+            <option value="Standard deviation">Standard deviation</option>
+            <option value="Median">Median</option>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="tiff"/>
+    </outputs>
+    <help>
+
+Project the Z axis using min intensity, max intensity, average intensity, sum, standard deviation, median.
+
+</help>
+</tool>

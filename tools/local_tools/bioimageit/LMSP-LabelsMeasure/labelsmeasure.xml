@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="labelsmeasure" name="LabelsMeasure" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">pandas==2.2.2</requirement>
+        <requirement type="package">scikit-image==0.24.0</requirement>
+        <requirement type="package">scipy==1.14.1</requirement>
+        <requirement type="package">python 3.12</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/LabelsMeasure_galaxy_wrapper.py' '${input_image}' '${label}' --pixel '${pixel}' --binary_map ${binary_map} '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="label" argument="--label" type="data" format="png,tiff,tif" label="Label image path, from cellpose for instance." help="Label image path, from cellpose for instance." optional="false"/>
+        <param name="pixel" argument="--pixel" type="integer" label="Size of the pixel erosion" help="Size of the pixel erosion" optional="false"/>
+        <param name="binary_map" argument="--binary_map" type="boolean" checked="false" label="If false, labels in your black &amp; white image" help="If false, labels in your black &amp; white image"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="csv"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/img02.png"/>
+            <param name="label" value="test-data/img02_segmentation.png"/>
+            <param name="pixel" value="4"/>
+            <param name="out" value="test-data/measurements.csv"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+LabelsMeasure provides the tools to generate the regions of interest from label images.
+
+</help>
+</tool>

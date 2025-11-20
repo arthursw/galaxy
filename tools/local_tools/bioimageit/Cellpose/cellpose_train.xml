@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<tool id="cellpose_train" name="Cellpose" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">pandas==2.1.4</requirement>
+        <requirement type="package">cellpose==3.1.0</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cellpose_train_galaxy_wrapper.py' '${train_directory}' '${test_directory}' --image_filter '${image_filter}' --mask_filter '${mask_filter}' --look_one_level_down ${look_one_level_down} --model_type '${model_type}' --channels '${channels}' --use_gpu ${use_gpu} --skip_normalization ${skip_normalization} --weight_decay '${weight_decay}' --SDG ${SDG} --learning_rate '${learning_rate}' --n_epochs '${n_epochs}' --model_name '${model_name}' --evaluate ${evaluate} '${out}'</command>
+    <inputs>
+        <param name="train_directory" argument="--train_directory" type="data" format="png,tiff,tif" label="The directory path containing the training data." help="The directory path containing the training data." optional="false"/>
+        <param name="test_directory" argument="--test_directory" type="data" format="png,tiff,tif" label="The directory path containing the testing data." help="The directory path containing the testing data."/>
+        <param name="image_filter" argument="--image_filter" type="text" value="_img" label="The filter for selecting image files." help="The filter for selecting image files."/>
+        <param name="mask_filter" argument="--mask_filter" type="text" label="The filter for selecting mask files." help="The filter for selecting mask files."/>
+        <param name="look_one_level_down" argument="--look_one_level_down" type="boolean" checked="false" label="Whether to look for data in subdirectories of train_dir and test_dir." help="Whether to look for data in subdirectories of train_dir and test_dir."/>
+        <param name="model_type" argument="--model_type" type="text" value="cyto3" label="Model type. Full built-in models: cyto=&quot;cytoplasm model&quot;, nuclei=&quot;nucleus model&quot;, cyto2=&quot;cytoplasm model with additional user images&quot;, cyto3=&quot;super-generalist model&quot;. For other built-in models, see https://cellpose.readthedocs.io/en/latest/models.html" help="Model type. Full built-in models: cyto=&quot;cytoplasm model&quot;, nuclei=&quot;nucleus model&quot;, cyto2=&quot;cytoplasm model with additional user images&quot;, cyto3=&quot;super-generalist model&quot;. For other built-in models, see https://cellpose.readthedocs.io/en/latest/models.html">
+            <option value="cyto">cyto</option>
+            <option value="cyto2">cyto2</option>
+            <option value="cyto3" selected="true">cyto3</option>
+            <option value="nuclei">nuclei</option>
+            <option value="tissuenet_cp3">tissuenet_cp3</option>
+            <option value="tissuenet_cp3">tissuenet_cp3</option>
+            <option value="livecell_cp3">livecell_cp3</option>
+            <option value="yeast_PhC_cp3">yeast_PhC_cp3</option>
+            <option value="yeast_BF_cp3">yeast_BF_cp3</option>
+            <option value="bact_phase_cp3">bact_phase_cp3</option>
+            <option value="bact_fluor_cp3">bact_fluor_cp3</option>
+            <option value="deepbacs_cp3">deepbacs_cp3</option>
+            <option value="cyto2_cp3">cyto2_cp3</option>
+            <option value="CP">CP</option>
+            <option value="CPx">CPx</option>
+            <option value="TN1">TN1</option>
+            <option value="TN2">TN2</option>
+            <option value="TN3">TN3</option>
+            <option value="LC1">LC1</option>
+            <option value="LC2">LC2</option>
+            <option value="LC3">LC3</option>
+            <option value="LC4">LC4</option>
+        </param>
+        <param name="channels" argument="--channels" type="text" value="[0,0]" label="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus." help="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus."/>
+        <param name="use_gpu" argument="--use_gpu" type="boolean" checked="false" label="Use GPU (default is CPU)." help="Use GPU (default is CPU)."/>
+        <param name="skip_normalization" argument="--skip_normalization" type="boolean" checked="true" label="Whether to skip the data normalization." help="Whether to skip the data normalization."/>
+        <param name="weight_decay" argument="--weight_decay" type="float" value="1e-05" label="Weight decay for the optimizer." help="Weight decay for the optimizer."/>
+        <param name="SDG" argument="--SDG" type="boolean" checked="false" label="Whether to use SGD as optimization instead of RAdam." help="Whether to use SGD as optimization instead of RAdam."/>
+        <param name="learning_rate" argument="--learning_rate" type="float" value="0.005" label="Learning rate for the training." help="Learning rate for the training."/>
+        <param name="n_epochs" argument="--n_epochs" type="integer" value="2000" label="Number of times to go through the whole training set during training." help="Number of times to go through the whole training set during training."/>
+        <param name="model_name" argument="--model_name" type="text" label="Name of the new network." help="Name of the new network."/>
+        <param name="evaluate" argument="--evaluate" type="boolean" checked="false" label="Whether to evaluate the model after training." help="Whether to evaluate the model after training."/>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <help>
+
+Segment cells with cellpose.
+
+</help>
+</tool>

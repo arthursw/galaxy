@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<tool id="train" name="Train ExoDeepFinder" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/train_galaxy_wrapper.py' '${dataset}' --patch_sizes '${patch_sizes}' --batch_sizes '${batch_sizes}' --random_shifts '${random_shifts}' --n_epochs '${n_epochs}' --n_steps '${n_steps}' '${output}'</command>
+    <inputs>
+        <param name="dataset" argument="--dataset" type="data" format="png,tiff,tif" value="[workflow_folder]/train_valid" label="Input dataset" help="Input dataset"/>
+        <param name="patch_sizes" argument="--patch_sizes" type="text" value="[8, 16, 32, 48]" label="Patch sizes. Can be an integer or a list of the form [patchSizeModel1, patchSizeModel2, ...]. A list enables to train multiple models, each using the previous weights as initialization. For example, with --patch_sizes &quot;[8, 16]&quot;: Model1 will use patches of size 8 voxels and Model2 will use patches of 16 voxels and initialize with the Model1 weights. The longest list of the parameters --patch_sizes, --batch_sizes, --random_shifts, --n_epochs and --n_steps will be use to determine the number of trainings ; and shorter lists will be extended with duplicates of their last values (integer parameters are similarly duplicated) to match the number of trainings." help="Patch sizes. Can be an integer or a list of the form [patchSizeModel1, patchSizeModel2, ...]. A list enables to train multiple models, each using the previous weights as initialization. For example, with --patch_sizes &quot;[8, 16]&quot;: Model1 will use patches of size 8 voxels and Model2 will use patches of 16 voxels and initialize with the Model1 weights. The longest list of the parameters --patch_sizes, --batch_sizes, --random_shifts, --n_epochs and --n_steps will be use to determine the number of trainings ; and shorter lists will be extended with duplicates of their last values (integer parameters are similarly duplicated) to match the number of trainings."/>
+        <param name="batch_sizes" argument="--batch_sizes" type="text" value="[256, 128, 32, 10]" label="Batch sizes. Can be an integer or a list of the form [batchSizeModel1, batchSizeModel2, ...]." help="Batch sizes. Can be an integer or a list of the form [batchSizeModel1, batchSizeModel2, ...]."/>
+        <param name="random_shifts" argument="--random_shifts" type="text" value="[4, 8, 16, 32]" label="Random shifts. Can be an integer or a list of the form [randomShiftsModel1, randomShiftsModel2, ...]." help="Random shifts. Can be an integer or a list of the form [randomShiftsModel1, randomShiftsModel2, ...]."/>
+        <param name="n_epochs" argument="--n_epochs" type="text" value="100" label="Number of epochs. Can be an integer or a list of the form [nEpochsModel1, nEpochsModel2, ...]." help="Number of epochs. Can be an integer or a list of the form [nEpochsModel1, nEpochsModel2, ...]."/>
+        <param name="n_steps" argument="--n_steps" type="text" value="100" label="Number of steps per epochs. Can be an integer or a list of the form [nStepsModel1, nStepsModel2, ...]." help="Number of steps per epochs. Can be an integer or a list of the form [nStepsModel1, nStepsModel2, ...]."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+Train a model from the given dataset.
+
+</help>
+</tool>

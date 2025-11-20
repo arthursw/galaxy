@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<tool id="cudadecon_deskew" name="condaDecon" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">conda-forge::pycudadecon|linux-64,win-64</requirement>
+        <requirement type="package">scikit-image==0.24.0</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cudaDecon_deskew_galaxy_wrapper.py' '${input_image}' --dxdata '${dxdata}' --dzdata '${dzdata}' --angle '${angle}' --width '${width}' --shift '${shift}' --pad_val '${pad_val}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="dxdata" argument="--dxdata" type="float" value="0.1" label="XY Pixel size of image volume." help="XY Pixel size of image volume."/>
+        <param name="dzdata" argument="--dzdata" type="float" value="0.5" label="Z-step size in image volume. In a typical light sheet stage-scanning acquisition, this corresponds to the step size that the stage takes between planes, NOT the final Z-step size between planeds after deskewing along the optical axis of the detection objective." help="Z-step size in image volume. In a typical light sheet stage-scanning acquisition, this corresponds to the step size that the stage takes between planes, NOT the final Z-step size between planeds after deskewing along the optical axis of the detection objective."/>
+        <param name="angle" argument="--angle" type="float" value="31.5" label="Deskew angle (usually, angle between sheet and axis of stage motion)." help="Deskew angle (usually, angle between sheet and axis of stage motion)."/>
+        <param name="width" argument="--width" type="integer" value="0" label="If not 0, crop output image to specified width" help="If not 0, crop output image to specified width"/>
+        <param name="shift" argument="--shift" type="integer" value="0" label="If not 0, shift image center by this value" help="If not 0, shift image center by this value"/>
+        <param name="pad_val" argument="--pad_val" type="integer" label="Value to pad image with when deskewing. If None the median value of the last Z plane will be used." help="Value to pad image with when deskewing. If None the median value of the last Z plane will be used."/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/deskew.tif"/>
+            <param name="output_image" value="test-data/deskewed.tif"/>
+            <assert_contents file="output_image"/>
+        </test>
+    </tests>
+    <help>
+
+CUDA/C++ implementation of an accelerated Richardson Lucy Deconvolution algorithm.
+
+</help>
+</tool>

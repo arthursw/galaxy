@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_segmeasure" name="clEsperanto Seg-measure" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_segmeasure_galaxy_wrapper.py' '${input_image}' --scalar '${scalar}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="scalar" argument="--scalar" type="float" value="1" label="scalar for threshold" help="scalar for threshold"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="csv"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/test.png"/>
+            <param name="out" value="test-data/test_segmeasure.csv"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Detect hot spots / local maxima / beads in an image and how to measure their FWHM. To make the algorithm work, the beads should be sufficiently sparse. .
+
+</help>
+</tool>

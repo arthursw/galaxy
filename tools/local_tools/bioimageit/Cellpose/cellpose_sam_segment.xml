@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<tool id="cellpose_sam_segment" name="Cellpose SAM" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">cellpose==4.0.5</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cellpose_sam_segment_galaxy_wrapper.py' '${input_image}' --use_gpu ${use_gpu} --channel_axis '${channel_axis}' --z_axis '${z_axis}' --diameter '${diameter}' --flow_threshold '${flow_threshold}' --cellprob_threshold '${cellprob_threshold}' --do_3D ${do_3D} --flow3D_smooth '${flow3D_smooth}' --min_size '${min_size}' --max_size_fraction '${max_size_fraction}' --niter '${niter}' '${segmentation}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="use_gpu" argument="--use_gpu" type="boolean" checked="false" label="Use GPU (default is CPU)." help="Use GPU (default is CPU)."/>
+        <param name="channel_axis" argument="--channel_axis" type="integer" label="Channel axis. if None, channels dimension is attempted to be automatically determined." help="Channel axis. if None, channels dimension is attempted to be automatically determined."/>
+        <param name="z_axis" argument="--z_axis" type="integer" label="Z axis. if None, 2 dimension is attempted to be automatically determined." help="Z axis. if None, 2 dimension is attempted to be automatically determined."/>
+        <param name="diameter" argument="--diameter" type="float" label="Estimate of the cell diameters (in pixels)." help="Estimate of the cell diameters (in pixels)."/>
+        <param name="flow_threshold" argument="--flow_threshold" type="float" value="0.4" label="Flow error threshold (all cells with errors below threshold are kept) (not used for 3D)." help="Flow error threshold (all cells with errors below threshold are kept) (not used for 3D)."/>
+        <param name="cellprob_threshold" argument="--cellprob_threshold" type="float" value="0.0" label="All pixels with value above threshold kept for masks, decrease to find more and larger masks." help="All pixels with value above threshold kept for masks, decrease to find more and larger masks."/>
+        <param name="do_3D" argument="--do_3D" type="boolean" checked="false" label="Run 3D segmentation on 3D/4D image input." help="Run 3D segmentation on 3D/4D image input."/>
+        <param name="flow3D_smooth" argument="--flow3D_smooth" type="integer" value="0" label="If do_3D and flow3D_smooth&gt;0, smooth flows with gaussian filter of this stddev." help="If do_3D and flow3D_smooth&gt;0, smooth flows with gaussian filter of this stddev."/>
+        <param name="min_size" argument="--min_size" type="integer" value="15" label="All ROIs below this size, in pixels, will be discarded. Defaults to 15." help="All ROIs below this size, in pixels, will be discarded. Defaults to 15."/>
+        <param name="max_size_fraction" argument="--max_size_fraction" type="float" value="0.4" label="Masks larger than max_size_fraction of total image size are removed. Default is 0.4." help="Masks larger than max_size_fraction of total image size are removed. Default is 0.4."/>
+        <param name="niter" argument="--niter" type="integer" label="number of iterations for dynamics computation. if None, it is set proportional to the diameter." help="number of iterations for dynamics computation. if None, it is set proportional to the diameter."/>
+    </inputs>
+    <outputs>
+        <data name="segmentation" format="png"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/img02.png"/>
+            <param name="segmentation" value="test-data/img02_segmentation.png"/>
+            <param name="visualization" value="test-data/img02_segmentation.npy"/>
+            <assert_contents file="segmentation"/>
+        </test>
+    </tests>
+    <help>
+
+Segment cells with Cellpose SAM.
+
+</help>
+</tool>

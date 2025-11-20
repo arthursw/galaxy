@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<tool id="convert_tiff_to_h5" name="Convert tiff to h5" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/convert_tiff_to_h5_galaxy_wrapper.py' '${tiff}' '${output}'</command>
+    <inputs>
+        <param name="tiff" argument="--tiff" type="data" format="png,tiff,tif" label="Path to the input movie folder. It must contain one tiff file per frame, their names must end with the frame number." help="Path to the input movie folder. It must contain one tiff file per frame, their names must end with the frame number."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+Convert tiff frames to h5 movie.
+
+</help>
+</tool>

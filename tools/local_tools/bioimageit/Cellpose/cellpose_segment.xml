@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<tool id="cellpose_segment" name="Cellpose" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">pandas==2.1.4</requirement>
+        <requirement type="package">cellpose==3.1.0</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cellpose_segment_galaxy_wrapper.py' '${input_image}' --model_type '${model_type}' --use_gpu ${use_gpu} --auto_diameter ${auto_diameter} --diameter '${diameter}' --channels '${channels}' '${segmentation}' '${visualization}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="model_type" argument="--model_type" type="text" value="cyto" label="Model type. “cyto”=cytoplasm model; “nuclei”=nucleus model; “cyto2”=cytoplasm model with additional user images; “cyto3”=super-generalist model." help="Model type. “cyto”=cytoplasm model; “nuclei”=nucleus model; “cyto2”=cytoplasm model with additional user images; “cyto3”=super-generalist model.">
+            <option value="cyto" selected="true">cyto</option>
+            <option value="nuclei">nuclei</option>
+            <option value="cyto2">cyto2</option>
+            <option value="cyto3">cyto3</option>
+        </param>
+        <param name="use_gpu" argument="--use_gpu" type="boolean" checked="false" label="Use GPU (default is CPU)." help="Use GPU (default is CPU)."/>
+        <param name="auto_diameter" argument="--auto_diameter" type="boolean" checked="false" label="Automatically estimate cell diameters, see https://cellpose.readthedocs.io/en/latest/settings.html." help="Automatically estimate cell diameters, see https://cellpose.readthedocs.io/en/latest/settings.html."/>
+        <param name="diameter" argument="--diameter" type="integer" value="30" label="Estimate of the cell diameters (in pixels)." help="Estimate of the cell diameters (in pixels)."/>
+        <param name="channels" argument="--channels" type="text" value="[0,0]" label="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus." help="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus."/>
+    </inputs>
+    <outputs>
+        <data name="segmentation" format="png"/>
+        <data name="visualization" format="npy"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/img02.png"/>
+            <param name="segmentation" value="test-data/img02_segmentation.png"/>
+            <param name="visualization" value="test-data/img02_segmentation.npy"/>
+            <assert_contents file="segmentation"/>
+            <assert_contents file="visualization"/>
+        </test>
+    </tests>
+    <help>
+
+Segment cells with cellpose.
+
+</help>
+</tool>

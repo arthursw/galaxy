@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<tool id="merge" name="Merge DataFrames" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/Merge_galaxy_wrapper.py' --how '${how}' --on '${on}' --left_on '${left_on}' --right_on '${right_on}' --left_index ${left_index} --right_index ${right_index} --sort ${sort} --left_suffix '${left_suffix}' --right_suffix '${right_suffix}'</command>
+    <inputs>
+        <param name="how" argument="--how" type="text" value="inner" label="How" help="How">
+            <option value="left">left</option>
+            <option value="right">right</option>
+            <option value="outer">outer</option>
+            <option value="inner" selected="true">inner</option>
+            <option value="cross">cross</option>
+        </param>
+        <param name="on" argument="--on" type="text" label="On" help="On"/>
+        <param name="left_on" argument="--left_on" type="text" label="Left on" help="Left on"/>
+        <param name="right_on" argument="--right_on" type="text" label="Right on" help="Right on"/>
+        <param name="left_index" argument="--left_index" type="boolean" label="Left index" help="Left index"/>
+        <param name="right_index" argument="--right_index" type="boolean" label="Right index" help="Right index"/>
+        <param name="sort" argument="--sort" type="boolean" label="Sort" help="Sort"/>
+        <param name="left_suffix" argument="--left_suffix" type="text" value="_x" label="Left suffix" help="Left suffix"/>
+        <param name="right_suffix" argument="--right_suffix" type="text" value="_y" label="Right suffix" help="Right suffix"/>
+    </inputs>
+    <help>
+
+Merge DataFrames.
+
+</help>
+</tool>

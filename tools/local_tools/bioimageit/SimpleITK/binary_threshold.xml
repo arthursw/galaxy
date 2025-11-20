@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<tool id="binary_threshold" name="Binary threshold" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/binary_threshold_galaxy_wrapper.py' '${image}' --channel '${channel}' --lowerThreshold '${lowerThreshold}' --upperThreshold '${upperThreshold}' --insideValue '${insideValue}' --outsideValue '${outsideValue}' '${thresholded_image}'</command>
+    <inputs>
+        <param name="image" argument="--image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path" optional="false"/>
+        <param name="channel" argument="--channel" type="integer" value="0" label="Channel to threshold" help="Channel to threshold"/>
+        <param name="lowerThreshold" argument="--lowerThreshold" type="float" value="0" label="Lower threshold" help="Lower threshold"/>
+        <param name="upperThreshold" argument="--upperThreshold" type="float" value="255" label="Upper threshold" help="Upper threshold"/>
+        <param name="insideValue" argument="--insideValue" type="integer" value="1" label="Inside value" help="Inside value"/>
+        <param name="outsideValue" argument="--outsideValue" type="integer" value="0" label="Outside value" help="Outside value"/>
+    </inputs>
+    <outputs>
+        <data name="thresholded_image" format="txt"/>
+    </outputs>
+    <help>
+
+SimpleITK Binary threshold.
+
+</help>
+</tool>

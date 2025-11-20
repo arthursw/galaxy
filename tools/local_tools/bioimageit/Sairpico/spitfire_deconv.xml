@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<tool id="spitfire_deconv" name="SPITFIR(e)" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sylvainprigent::simglib=0.1.2|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/Spitfire_Deconv_galaxy_wrapper.py' '${input}' --type '${type}' --sigma '${sigma}' '${psf}' --regularization '${regularization}' --weighting '${weighting}' --method '${method}' --padding ${padding} '${output}'</command>
+    <inputs>
+        <param name="input" argument="--input" type="data" format="png,tiff,tif" label="Input Image" help="Input Image" optional="false"/>
+        <param name="type" argument="--type" type="text" value="2D" label="Perform 2D, 2D Slice or 3D deconvolution." help="Perform 2D, 2D Slice or 3D deconvolution.">
+            <option value="2D" selected="true">2D</option>
+            <option value="2D Slice">2D Slice</option>
+            <option value="3D">3D</option>
+        </param>
+        <param name="sigma" argument="--sigma" type="float" value="1.5" label="Gaussian PSF width (for 2D and 2D Slice only)" help="Gaussian PSF width (for 2D and 2D Slice only)"/>
+        <param name="psf" argument="--psf" type="data" format="png,tiff,tif" label="PSF Image (for 3D only)" help="PSF Image (for 3D only)"/>
+        <param name="regularization" argument="--regularization" type="float" value="12" label="Regularization parameter pow(2,-x)" help="Regularization parameter pow(2,-x)"/>
+        <param name="weighting" argument="--weighting" type="float" value="0.6" label="Weighting" help="Weighting"/>
+        <param name="method" argument="--method" type="text" value="HV" label="Method for regularization" help="Method for regularization">
+            <option value="HV" selected="true">HV</option>
+            <option value="SV">SV</option>
+        </param>
+        <param name="padding" argument="--padding" type="boolean" checked="false" label="Add padding to process border pixels" help="Add padding to process border pixels"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+SPITFIR(e) deconvolution.
+
+</help>
+</tool>

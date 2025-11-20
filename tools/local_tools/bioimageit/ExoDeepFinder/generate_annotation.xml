@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<tool id="generate_annotation" name="Generate annotations" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/generate_annotation_galaxy_wrapper.py' '${segmentation}' --cluster_radius '${cluster_radius}' --keep_labels_unchanged ${keep_labels_unchanged} '${annotation}'</command>
+    <inputs>
+        <param name="segmentation" argument="--segmentation" type="data" format="png,tiff,tif" label="Input segmentation (in .h5 format)." help="Input segmentation (in .h5 format)."/>
+        <param name="cluster_radius" argument="--cluster_radius" type="integer" value="5" label="Approximate size in voxel of the objects to cluster. 5 is a good value for events of 400nm on films with a pixel size of 160nm." help="Approximate size in voxel of the objects to cluster. 5 is a good value for events of 400nm on films with a pixel size of 160nm."/>
+        <param name="keep_labels_unchanged" argument="--keep_labels_unchanged" type="boolean" checked="false" label="By default, bright spots are removed (labels 1 are set to 0) and exocytose events (labels 2) are set to 1. This option skip this step, so labels are kept unchanged." help="By default, bright spots are removed (labels 1 are set to 0) and exocytose events (labels 2) are set to 1. This option skip this step, so labels are kept unchanged."/>
+    </inputs>
+    <outputs>
+        <data name="annotation" format="txt"/>
+    </outputs>
+    <help>
+
+Generate annotations from a segmentation.
+
+</help>
+</tool>

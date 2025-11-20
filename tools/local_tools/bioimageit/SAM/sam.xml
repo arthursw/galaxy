@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<tool id="sam" name="Segment Anything Model 2" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sam2==1.1.0</requirement>
+        <requirement type="package">huggingface_hub==0.29.2</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/sam_galaxy_wrapper.py' '${image}' --points_per_side '${points_per_side}' --pred_iou_thresh '${pred_iou_thresh}' --stability_score_thresh '${stability_score_thresh}' --stability_score_offset '${stability_score_offset}' '${segmentation}'</command>
+    <inputs>
+        <param name="image" argument="--image" type="data" format="png,tiff,tif" label="The input image to segment." help="The input image to segment." optional="false"/>
+        <param name="points_per_side" argument="--points_per_side" type="integer" value="32" label=" The number of points to be sampled along one side of the image. The total number of points is points_per_side**2." help=" The number of points to be sampled along one side of the image. The total number of points is points_per_side**2."/>
+        <param name="pred_iou_thresh" argument="--pred_iou_thresh" type="float" value="0.8" label="A fitering threshold in [0,1], using the model's predicted mask quality." help="A fitering threshold in [0,1], using the model's predicted mask quality."/>
+        <param name="stability_score_thresh" argument="--stability_score_thresh" type="float" value="0.95" label="A filtering threshold in [0,1], using the stability of the mask under changes to the cutoff used to binarize the model's mask predictions." help="A filtering threshold in [0,1], using the stability of the mask under changes to the cutoff used to binarize the model's mask predictions."/>
+        <param name="stability_score_offset" argument="--stability_score_offset" type="float" value="1.0" label="The amount to shift the cutoff when calculated the stability score." help="The amount to shift the cutoff when calculated the stability score."/>
+    </inputs>
+    <outputs>
+        <data name="segmentation" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="image" value="test-data/img02.jpeg"/>
+            <param name="segmentation" value="test-data/img02_segmentation.tiff"/>
+            <assert_contents file="segmentation"/>
+        </test>
+    </tests>
+    <help>
+
+SAM 2: Segment Anything in Images and Videos.
+
+</help>
+</tool>

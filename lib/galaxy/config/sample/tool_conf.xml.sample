@@ -144,4 +144,128 @@
   <tool file="local_tools/custom_average_label_overlaps/custom_average_label_overlaps.xml" />
   <tool file="local_tools/custom_merge_csv_collection/custom_merge_csv_collection.xml" />
 
-<tool file="local_tools/custom_Chiry/custom_Chiry.xml" /><tool file="local_tools/custom_Display_shape/custom_Display_shape.xml" /><tool file="local_tools/custom_Ease/custom_Ease.xml" /><tool file="local_tools/custom_Eeeaz/custom_Eeeaz.xml" /><tool file="local_tools/albert/albert.xml" /><tool file="local_tools/another/another.xml" /><tool file="local_tools/nowrkf/nowrkf.xml" /><tool file="local_tools/ekrjh_ezlrkj/ekrjh_ezlrkj.xml" /><tool file="local_tools/hector_beaver/hector_beaver.xml" /><tool file="local_tools/zeze/zeze.xml" /><tool file="local_tools/azazeaze/azazeaze.xml" /><tool file="local_tools/expected/expected.xml" /><tool file="local_tools/another_tool/another_tool.xml" /></toolbox>
+  <section id="bioimageit" name="BioImageIT">
+
+    <section id="detection" name="Detection">
+      <tool file="local_tools/bioimageit/Atlas/atlas.xml" />
+      <tool file="local_tools/bioimageit/Spitfire/spitfire.xml" />
+    </section>
+
+    <section id="basics" name="Basics">
+      <tool file="local_tools/bioimageit/Basics/average_label_overlaps.xml" />
+      <tool file="local_tools/bioimageit/Basics/convert.xml" />
+      <tool file="local_tools/bioimageit/Basics/extract_channel_bioio.xml" />
+      <tool file="local_tools/bioimageit/Basics/resize.xml" />
+      <tool file="local_tools/bioimageit/Basics/z_projection.xml" />
+    </section>
+
+    <section id="basics" name="Dataframes">
+      <tool file="local_tools/bioimageit/DataFrames/columnregex.xml" />
+      <tool file="local_tools/bioimageit/DataFrames/concat.xml" />
+      <tool file="local_tools/bioimageit/DataFrames/filter.xml" />
+      <tool file="local_tools/bioimageit/DataFrames/generate.xml" />
+      <tool file="local_tools/bioimageit/DataFrames/listfiles.xml" />
+      <tool file="local_tools/bioimageit/DataFrames/merge.xml" />
+    </section>
+
+    <section id="basics" name="Segmentation">
+      <tool file="local_tools/bioimageit/Cellpose/cellpose_sam_segment.xml" />
+      <tool file="local_tools/bioimageit/Cellpose/cellpose_segment.xml" />
+      <tool file="local_tools/bioimageit/Cellpose/cellpose_train.xml" />
+      <tool file="local_tools/bioimageit/SAM/sam.xml" />
+      <tool file="local_tools/bioimageit/Stardist/stardist_segment.xml" />
+    </section>
+
+    <section id="basics" name="clEsperanto">
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_3d_segmentation.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_basic_stats.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_beads.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_cell_segmentation.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_count_nuclei.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_count.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_deskew.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_intensity_stats.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_segmeasure.xml" />
+      <tool file="local_tools/bioimageit/clEsperanto/clesperanto_voronoi.xml" />
+    </section>
+
+    <section id="convertion" name="Convertion">
+      <tool file="local_tools/bioimageit/ConvertImage/convert_image.xml" />
+    </section>
+
+    <section id="deconvolution" name="Deconvolution">
+      <tool file="local_tools/bioimageit/cudaDecon/cudadecon_deskew.xml" />
+      <tool file="local_tools/bioimageit/cudaDecon/cudadecon.xml" />
+      <tool file="local_tools/bioimageit/STED-MATIRF/matirf.xml" />
+    </section>
+
+    <section id="localize" name="Localization">
+      <tool file="local_tools/bioimageit/STED-MATIRF/matirf_localize.xml" />
+    </section>
+
+    <section id="tracking" name="Tracking">
+      <tool file="local_tools/bioimageit/STracking/stracking_detection.xml" />
+      <tool file="local_tools/bioimageit/STracking/stracking_linker.xml" />
+    </section>
+    
+    <section id="measurements" name="Measurements">
+      <tool file="local_tools/bioimageit/LMSP-LabelsMeasure/labelsmeasure.xml" />
+    </section>
+
+    <section id="denoising" name="Denoising">
+      <tool file="local_tools/bioimageit/NdSafir/nd_safir.xml" />
+      <tool file="local_tools/bioimageit/Noise2Self/noise2self.xml" />
+    </section>
+
+    <section id="omero" name="Omero">
+      <tool file="local_tools/bioimageit/Omero/omero_download.xml" />
+      <tool file="local_tools/bioimageit/Omero/omero_upload.xml" />
+    </section>
+
+    <section id="libraries" name="Libraries">
+
+      <section id="simpleitk" name="SimpleITK">
+        <tool file="local_tools/bioimageit/SimpleITK/binary_threshold.xml" />
+        <tool file="local_tools/bioimageit/SimpleITK/connected_components.xml" />
+        <tool file="local_tools/bioimageit/SimpleITK/extract_channel.xml" />
+        <tool file="local_tools/bioimageit/SimpleITK/label_overlaps.xml" />
+        <tool file="local_tools/bioimageit/SimpleITK/label_statistics.xml" />
+        <tool file="local_tools/bioimageit/SimpleITK/subtract_images.xml" />
+      </section>
+
+      <section id="fiji" name="Fiji">
+        <tool file="local_tools/bioimageit/Fiji/puncta_segmentation.xml" />
+        <tool file="local_tools/bioimageit/Fiji/stackreg_fiji.xml" />
+        <tool file="local_tools/bioimageit/Fiji/stackreg_pyimagej.xml" />
+      </section>
+      
+      <section id="sairpico" name="Sairpico">
+        <tool file="local_tools/bioimageit/Sairpico/cimg_denoising.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/gaussianpsf.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/gibsonlannipsf.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/hotspot.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/median_denoising.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/richardson-lucy.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/spitfire_deconv.xml" />
+        <tool file="local_tools/bioimageit/Sairpico/weiner_deconv.xml" />
+
+        <section id="exodeepfinder" name="ExoDeepFinder">
+          <tool file="local_tools/bioimageit/ExoDeepFinder/convert_tiff_to_h5.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/detect_spots.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/generate_annotation.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/generate_segmentation.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/merge_detector_expert.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/segment.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/structure_training_dataset.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/symlink.xml" />
+          <tool file="local_tools/bioimageit/ExoDeepFinder/train.xml" />
+        </section>
+      </section>
+      
+    </section>
+
+
+
+  </section>
+
+</toolbox>

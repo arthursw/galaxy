@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_basic_stats" name="clEsperanto Basic Stats" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_basic_stats_galaxy_wrapper.py' '${input_image}' --spot_sigma '${spot_sigma}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="spot_sigma" argument="--spot_sigma" type="float" value="3.5" label="spot_sigma" help="spot_sigma"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="csv"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/IXMtest_A02_s9.tif"/>
+            <param name="out" value="test-data/IXMtest_A02_s9_info.csv"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Basic stats with clEsperanto.
+
+</help>
+</tool>

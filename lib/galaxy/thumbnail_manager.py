@@ -5,7 +5,7 @@ from galaxy import exceptions as galaxy_exceptions
 class ThumbnailManager:
     def __init__(self, environment_manager:EnvironmentManager) -> None:
         self.environment_manager = environment_manager
-        self.thumnail_environment = self.environment_manager.create('convert_image', {'pip': ["bioio==3.0.0", "pillow==11.1.0", "bioio-ome-zarr", "bioio-ome-tiff", "bioio-ome-tiled-tiff", "bioio-czi", "bioio-imageio", "bioio-tifffile", "bioio-tiff-glob", "bioio-bioformats"]})
+        self.thumnail_environment = self.environment_manager.create('convert_image', {'pip': ["bioio==3.0.0", "pillow==11.1.0", "bioio-ome-zarr", "bioio-ome-tiff", "bioio-czi", "bioio-imageio", "bioio-tifffile", "bioio-tiff-glob", "bioio-bioformats"]})
         self.thumnail_environment.launch()
 
     def queue_generate_thumbnail(self, dataset, galaxy_root_dir):

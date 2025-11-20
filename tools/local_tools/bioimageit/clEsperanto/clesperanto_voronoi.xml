@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_voronoi" name="clEsperanto Voronoi Otsu" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_voronoi_galaxy_wrapper.py' '${input_image}' --sigma_spot_detection '${sigma_spot_detection}' --sigma_outline '${sigma_outline}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="sigma_spot_detection" argument="--sigma_spot_detection" type="float" value="5" label="sigma_spot_detection" help="sigma_spot_detection"/>
+        <param name="sigma_outline" argument="--sigma_outline" type="float" value="1" label="sigma_outline" help="sigma_outline"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/IXMtest_A02_s9.tif"/>
+            <param name="out" value="test-data/IXMtest_A02_s9_voronoi.csv"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Voronoi otsu labeling with clEsperanto.
+
+</help>
+</tool>

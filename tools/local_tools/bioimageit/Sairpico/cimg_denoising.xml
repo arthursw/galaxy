@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<tool id="cimg_denoising" name="CImg denoising" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::cimgdenoising==1.0.0|osx-64,win-64</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cimg_denoising_galaxy_wrapper.py' '${input_image}' --first '${first}' --last '${last}' --alpha '${alpha}' --scale '${scale}' --range '${range}' --algo '${algo}' --ng '${ng}' --np ${np} --msg '${msg}' --stab ${stab} --patch '${patch}' --neigh '${neigh}' --denoisep '${denoisep}' --sparsep '${sparsep}' --iter '${iter}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="first" argument="--first" type="integer" value="0" label="Number of the first image (0: default value)" help="Number of the first image (0: default value)"/>
+        <param name="last" argument="--last" type="integer" label="Number of the last image (depth or time: default value)" help="Number of the last image (depth or time: default value)"/>
+        <param name="alpha" argument="--alpha" type="float" value="0.0" label="Alpha mixing of input/output images [0. - 1.] (0.: default value)" help="Alpha mixing of input/output images [0. - 1.] (0.: default value)"/>
+        <param name="scale" argument="--scale" type="float" value="1.0" label="Resize the volume in the range [0.5 - 1.5] (1.: default value)" help="Resize the volume in the range [0.5 - 1.5] (1.: default value)"/>
+        <param name="range" argument="--range" type="float" value="1.0" label="Automatic intensity scaling (-1) or manual scaling" help="Automatic intensity scaling (-1) or manual scaling"/>
+        <param name="algo" argument="--algo" type="text" label="Algorithm name" help="Algorithm name">
+            <option value="BM3D">BM3D</option>
+            <option value="NLBayes">NLBayes</option>
+            <option value="NLMeans">NLMeans</option>
+            <option value="BayesNLmeans">BayesNLmeans</option>
+            <option value="SAFIR">SAFIR</option>
+            <option value="PEWA">PEWA</option>
+            <option value="OWF">OWF</option>
+            <option value="DCT">DCT</option>
+            <option value="Wiener">Wiener</option>
+            <option value="Bilateral">Bilateral</option>
+            <option value="Gaussian">Gaussian</option>
+            <option value="Median">Median</option>
+            <option value="TV">TV</option>
+            <option value="SV">SV</option>
+            <option value="HV">HV</option>
+        </param>
+        <param name="ng" argument="--ng" type="float" value="0.0" label="Add artificial Gaussian noise before applying the algorithm" help="Add artificial Gaussian noise before applying the algorithm"/>
+        <param name="np" argument="--np" type="boolean" checked="false" label="Add artificial Poisson noise before applying the algorithm" help="Add artificial Poisson noise before applying the algorithm"/>
+        <param name="msg" argument="--msg" type="float" value="0.0" label="Adjust manually the assumed Gaussian noise standard deviation" help="Adjust manually the assumed Gaussian noise standard deviation"/>
+        <param name="stab" argument="--stab" type="boolean" checked="false" label="Variance stabilization for Poisson noise removal" help="Variance stabilization for Poisson noise removal"/>
+        <param name="patch" argument="--patch" type="integer" value="3" label="Half size of the patch (NLMeans, PEWA, OWF, SAFIR, DCT, Wiener)" help="Half size of the patch (NLMeans, PEWA, OWF, SAFIR, DCT, Wiener)"/>
+        <param name="neigh" argument="--neigh" type="integer" value="7" label="Half size of the neighborhood (NLMeans, PEWA, OWF, SAFIR, DCT, Median, Bilateral)" help="Half size of the neighborhood (NLMeans, PEWA, OWF, SAFIR, DCT, Median, Bilateral)"/>
+        <param name="denoisep" argument="--denoisep" type="float" label="Denoising parameter (NLMeans: 3.5 | DCT: 3.0 | Wiener: 1.25 | Bilateral: 2.0 | Gaussian: 1.0 | TV: 6.0 | SV: 6.0 | HV: 6.0)" help="Denoising parameter (NLMeans: 3.5 | DCT: 3.0 | Wiener: 1.25 | Bilateral: 2.0 | Gaussian: 1.0 | TV: 6.0 | SV: 6.0 | HV: 6.0)"/>
+        <param name="sparsep" argument="--sparsep" type="float" value="0.6" label="Sparsity parameter (SV and HV algorithms) in the range [0.1 - 0.9]" help="Sparsity parameter (SV and HV algorithms) in the range [0.1 - 0.9]"/>
+        <param name="iter" argument="--iter" type="integer" value="4" label="Number of iterations (NDSafir only)" help="Number of iterations (NDSafir only)"/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/Montage.tif"/>
+            <param name="algo" value="PEWA"/>
+            <param name="patch" value="3"/>
+            <param name="neigh" value="7"/>
+            <param name="output_image" value="test-data/pewa_result.tif"/>
+            <assert_contents file="output_image"/>
+        </test>
+    </tests>
+    <help>
+
+Denoise 2D+T images corrupted by Gaussian or Poisson noise with patch based methods and basic methods and variational methods.
+
+</help>
+</tool>

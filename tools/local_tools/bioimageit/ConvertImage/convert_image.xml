@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<tool id="convert_image" name="Convert images" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">conda-forge::openjdk=11</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/convert_image_galaxy_wrapper.py' '${input_image}' --stitch ${stitch} --separate ${separate} --merge ${merge} --expand ${expand} --bigtiff ${bigtiff} --nobigtiff ${nobigtiff} --compression '${compression}' --series '${series}' --noflat ${noflat} --cache ${cache} '${--cache-dir}' ----no-sas ${--no-sas} '${map}' --range '${range}' --nogroup ${nogroup} --nolookup ${nolookup} --autoscale ${autoscale} --overwrite ${overwrite} --nooverwrite ${nooverwrite} --crop '${crop}' --channel '${channel}' --z '${z}' --timepoint '${timepoint}' --padded ${padded} --novalid ${novalid} --validate ${validate} --tilex '${tilex}' --tiley '${tiley}' ----pyramid-scale '${--pyramid-scale}' ----pyramid-resolutions '${--pyramid-resolutions}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="stitch" argument="--stitch" type="boolean" checked="false" label="Stitch input files with similar names." help="Stitch input files with similar names."/>
+        <param name="separate" argument="--separate" type="boolean" checked="false" label="Split RGB images into separate channels." help="Split RGB images into separate channels."/>
+        <param name="merge" argument="--merge" type="boolean" checked="false" label="Combine separate channels into RGB image." help="Combine separate channels into RGB image."/>
+        <param name="expand" argument="--expand" type="boolean" checked="false" label="Expand indexed color to RGB." help="Expand indexed color to RGB."/>
+        <param name="bigtiff" argument="--bigtiff" type="boolean" checked="false" label="Force BigTIFF files to be written." help="Force BigTIFF files to be written."/>
+        <param name="nobigtiff" argument="--nobigtiff" type="boolean" checked="false" label="Do not automatically switch to BigTIFF." help="Do not automatically switch to BigTIFF."/>
+        <param name="compression" argument="--compression" type="text" value="" label="Specify the codec to use when saving images." help="Specify the codec to use when saving images.">
+            <option value="" selected="true"/>
+            <option value="Uncompressed">Uncompressed</option>
+            <option value="LZW">LZW</option>
+            <option value="JPEG-2000">JPEG-2000</option>
+            <option value="JPEG-2000 Lossy">JPEG-2000 Lossy</option>
+            <option value="JPEG">JPEG</option>
+            <option value="zlib">zlib</option>
+        </param>
+        <param name="series" argument="--series" type="integer" label="Specify which image series to convert." help="Specify which image series to convert."/>
+        <param name="noflat" argument="--noflat" type="boolean" checked="false" label="Do not flatten subresolutions." help="Do not flatten subresolutions."/>
+        <param name="cache" argument="--cache" type="boolean" checked="false" label="Cache the initialized reader." help="Cache the initialized reader."/>
+        <param name="--cache-dir" argument="----cache-dir" type="data" format="png,tiff,tif" label="Use the specified directory to store the cached initialized reader. If unspecified, the cached reader will be stored under the same folder as the image file." help="Use the specified directory to store the cached initialized reader. If unspecified, the cached reader will be stored under the same folder as the image file."/>
+        <param name="--no-sas" argument="----no-sas" type="boolean" checked="false" label="Do not preserve the OME-XML StructuredAnnotation elements." help="Do not preserve the OME-XML StructuredAnnotation elements."/>
+        <param name="map" argument="--map" type="data" format="png,tiff,tif" label="Specify file on disk to which name should be mapped." help="Specify file on disk to which name should be mapped."/>
+        <param name="range" argument="--range" type="text" label="Specify the range of planes to convert. Must be of the form MIN,MAX where MIN is the first plane index and MAX is the last plane index. For example 0,5 will only convert planes 0 to 5. Default will convert every planes." help="Specify the range of planes to convert. Must be of the form MIN,MAX where MIN is the first plane index and MAX is the last plane index. For example 0,5 will only convert planes 0 to 5. Default will convert every planes."/>
+        <param name="nogroup" argument="--nogroup" type="boolean" checked="false" label="Force multi-file datasets to be read as individual files." help="Force multi-file datasets to be read as individual files."/>
+        <param name="nolookup" argument="--nolookup" type="boolean" checked="false" label="Disable the conversion of lookup tables." help="Disable the conversion of lookup tables."/>
+        <param name="autoscale" argument="--autoscale" type="boolean" checked="false" label="Automatically adjust brightness and contrast before converting; this may mean that the original pixel values are not preserved." help="Automatically adjust brightness and contrast before converting; this may mean that the original pixel values are not preserved."/>
+        <param name="overwrite" argument="--overwrite" type="boolean" checked="false" label="Always overwrite the output file, if it already exists." help="Always overwrite the output file, if it already exists."/>
+        <param name="nooverwrite" argument="--nooverwrite" type="boolean" checked="false" label="Never overwrite the output file, if it already exists." help="Never overwrite the output file, if it already exists."/>
+        <param name="crop" argument="--crop" type="text" label="Crop images before converting. Must be in the form x,y,w,h." help="Crop images before converting. Must be in the form x,y,w,h."/>
+        <param name="channel" argument="--channel" type="integer" label="Only convert the specified channel (indexed from 0)." help="Only convert the specified channel (indexed from 0)."/>
+        <param name="z" argument="--z" type="integer" label="Only convert the specified Z section (indexed from 0)." help="Only convert the specified Z section (indexed from 0)."/>
+        <param name="timepoint" argument="--timepoint" type="integer" label="Only convert the specified timepoint (indexed from 0)." help="Only convert the specified timepoint (indexed from 0)."/>
+        <param name="padded" argument="--padded" type="boolean" checked="false" label="Filename indexes for series, z, c and t will be zero padded." help="Filename indexes for series, z, c and t will be zero padded."/>
+        <param name="novalid" argument="--novalid" type="boolean" checked="false" label="Will not validate the OME-XML for the output file." help="Will not validate the OME-XML for the output file."/>
+        <param name="validate" argument="--validate" type="boolean" checked="false" label="Will validate the generated OME-XML for the output file." help="Will validate the generated OME-XML for the output file."/>
+        <param name="tilex" argument="--tilex" type="integer" label="Image will be converted one tile at a time using the given tile width." help="Image will be converted one tile at a time using the given tile width."/>
+        <param name="tiley" argument="--tiley" type="integer" label="Image will be converted one tile at a time using the given tile height." help="Image will be converted one tile at a time using the given tile height."/>
+        <param name="--pyramid-scale" argument="----pyramid-scale" type="integer" label="Generates a pyramid image with each subsequent resolution level divided by scale." help="Generates a pyramid image with each subsequent resolution level divided by scale."/>
+        <param name="--pyramid-resolutions" argument="----pyramid-resolutions" type="integer" label="Generates a pyramid image with the given number of resolution levels." help="Generates a pyramid image with the given number of resolution levels."/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="tiff"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/img02.png"/>
+            <param name="overwrite"/>
+            <param name="output_image" value="test-data/img02.tif"/>
+            <assert_contents file="output_image"/>
+        </test>
+    </tests>
+    <help>
+
+Convert image file formats. The extension of the output file specifies the file format to use for the conversion. For example, to convert the input image to png and keep the input name, use "{input_image.stem}.png"
+
+</help>
+</tool>

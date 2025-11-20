@@ -1,0 +1,57 @@
+import SimpleITK as sitk
+import numpy as np
+import pandas
+
+class Tool:
+    
+    name = "Label overlaps"
+    description = "Compute label overlap statistics from two label images."
+    categories = ['SimpleITK']
+    multipleInputs = True
+    inputs = [
+            dict(
+            name = 'label1',
+            help = 'Input label image 1',
+            type = 'Path',
+            required = True,
+            autoColumn = True,
+        ),
+            dict(
+            name = 'label2',
+            help = 'Input label image 2',
+            type = 'Path',
+            required = True,
+            autoColumn = True,
+        )
+    ]
+    outputs = [
+    ]
+
+    def processDataFrame(self, dataFrame, argsList):
+        self.outputMessage = 'Label overlap statistics will be computed on execution.'
+        return dataFrame
+
+    def processData(self, args):
+        if not args.label1.exists():
+            raise Exception(f'Error: input label image 1 {args.label1} does not exist.')
+        if not args.label2.exists():
+            raise Exception(f'Error: input label image 2 {args.label2} does not exist.')
+        label1 = sitk.ReadImage(args.label1)
+        label2 = sitk.ReadImage(args.label2)
+        label1Data = sitk.GetArrayFromImage(label1).astype(np.uint64)
+        label2Data = sitk.GetArrayFromImage(label2).astype(np.uint64)
+        records = []
+        print('Label 1 image: ', label1Data.shape)
+        print('Label 2 image: ', label2Data.shape)
+        label1Count = int(label1Data.max() + 1)
+        for i in range(label1Count):
+            print('label', i, 'counting uniques values of label 2 underneath...')
+            uniques, counts = np.unique(label2Data[label1Data == i], return_counts=True)
+            print('found', len(uniques), 'labels')
+            for u, c in zip(uniques, counts):
+                records.append(dict(image1=args.label1, image2=args.label2, label1=i, label2=u, overlap=c))
+            # counts = np.count_nonzero(label2Data[label1Data == i])
+            # records.append(dict(label1=i, label2_counts=counts))
+        
+        self.outputMessage = ''
+        return pandas.DataFrame.from_records(records)

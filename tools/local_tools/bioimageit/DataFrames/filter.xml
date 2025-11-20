@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<tool id="filter" name="Filter out rows" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/Filter_galaxy_wrapper.py' --column_name '${column_name}' --min '${min}' --max '${max}' --numbers_to_remove '${numbers_to_remove}' --strings_to_remove '${strings_to_remove}'</command>
+    <inputs>
+        <param name="column_name" argument="--column_name" type="text" label="Column name" help="Column name" optional="false"/>
+        <param name="min" argument="--min" type="float" label="The minimum value to keep. Ignored if None (None by default)." help="The minimum value to keep. Ignored if None (None by default)."/>
+        <param name="max" argument="--max" type="float" label="The maximum value to keep. Ignored if None (None by default)." help="The maximum value to keep. Ignored if None (None by default)."/>
+        <param name="numbers_to_remove" argument="--numbers_to_remove" type="text" value="" label="Comma separated numbers to filter out (for example &quot;0,1,55&quot;)." help="Comma separated numbers to filter out (for example &quot;0,1,55&quot;)."/>
+        <param name="strings_to_remove" argument="--strings_to_remove" type="text" value="" label="Comma separated string to filter out (for example &quot;the,words,to,remove&quot;)." help="Comma separated string to filter out (for example &quot;the,words,to,remove&quot;)."/>
+        <param name="input_dataframe" argument="--input_dataframe" type="data" format="csv,tabular" optional="true" label="Input DataFrame (CSV)" help="Optional CSV file containing input DataFrame for batch processing"/>
+    </inputs>
+    <help>
+
+Filter out rows containing given values and from given range.
+
+</help>
+</tool>

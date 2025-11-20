@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<tool id="cudadecon" name="condaDecon" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">conda-forge::pycudadecon|linux-64,win-64</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/cudaDecon_galaxy_wrapper.py' '${input_image}' '${psf}' --background '${background}' '${output_image}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
+        <param name="psf" argument="--psf" type="data" format="png,tiff,tif" label="Path to the PSF or OTF file." help="Path to the PSF or OTF file." optional="false"/>
+        <param name="background" argument="--background" type="text" value="80" label="User-supplied background to subtract. If &quot;auto&quot;, the median value of the last Z plane will be used as background." help="User-supplied background to subtract. If &quot;auto&quot;, the median value of the last Z plane will be used as background."/>
+    </inputs>
+    <outputs>
+        <data name="output_image" format="txt"/>
+    </outputs>
+    <help>
+
+CUDA/C++ implementation of an accelerated Richardson Lucy Deconvolution algorithm.
+
+</help>
+</tool>

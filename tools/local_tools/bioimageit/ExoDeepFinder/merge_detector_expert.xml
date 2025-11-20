@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<tool id="merge_detector_expert" name="Merge detector and expert data" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/merge_detector_expert_galaxy_wrapper.py' '${movie_folder}' '${detector_segmentation}' '${expert_segmentation}' '${expert_annotation}' '${merged_segmentation}' '${merged_annotation}'</command>
+    <inputs>
+        <param name="movie_folder" argument="--movie_folder" type="data" format="png,tiff,tif" label="Movie folder." help="Movie folder." optional="false"/>
+        <param name="detector_segmentation" argument="--detector_segmentation" type="data" format="png,tiff,tif" value="detector_segmentation.h5" label="Detector segmentation (in .h5 format)." help="Detector segmentation (in .h5 format)."/>
+        <param name="expert_segmentation" argument="--expert_segmentation" type="data" format="png,tiff,tif" value="expert_segmentation.h5" label="Expert segmentation (in .h5 format)." help="Expert segmentation (in .h5 format)."/>
+        <param name="expert_annotation" argument="--expert_annotation" type="data" format="png,tiff,tif" value="expert_annotation.xml" label="Expert annotation (in .xml format)." help="Expert annotation (in .xml format)."/>
+    </inputs>
+    <outputs>
+        <data name="merged_segmentation" format="txt"/>
+        <data name="merged_annotation" format="txt"/>
+    </outputs>
+    <help>
+
+Merge detector detections with expert annotations.
+
+</help>
+</tool>

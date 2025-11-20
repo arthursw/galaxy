@@ -8,6 +8,7 @@ import { computed, ref, watch } from "vue";
 import { getAppRoot } from "@/onload/loadConfig";
 import { useToolStore } from "@/stores/toolStore";
 import { useUserStore } from "@/stores/userStore";
+import { useCodeServerStore } from "@/stores/codeServerStore";
 import localize from "@/utils/localization";
 import { errorMessageAsString } from "@/utils/simple-error";
 
@@ -63,6 +64,9 @@ const editSuccess = ref(false);
 const isEditingTool = ref(false);
 const editInputRef = ref<any>(null);
 const editForbiddenCharWarning = ref(false);
+
+// CodeServer store
+const codeServerStore = useCodeServerStore();
 
 const panelIcon = computed(() => {
     if (showAdvanced.value) {
@@ -327,13 +331,17 @@ async function onDeleteTool(toolId: string) {
     }
 }
 
-async function onOpenTool(toolId: string) {
+async function onOpenTool(tool: any) {
     try {
+        // Execute the server command to open VS Code locally
         const url = `${getAppRoot()}api/tools/open_tool_in_vscode/`;
-        await axios.post(url, { id: toolId });
+        await axios.post(url, { id: tool.id });
     } catch (e) {
-        alert((e as Error).message || "Failed to open tool");
+        console.error("Failed to open tool in VS Code:", e);
     }
+
+    // Also open the code-server web panel
+    codeServerStore.openPanel(tool);
 }
 
 watch(

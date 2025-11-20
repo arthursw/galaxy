@@ -16,6 +16,7 @@ from typing import (
 )
 
 from lib.galaxy.napari_launcher import NapariLauncher
+from lib.galaxy.code_manager import CodeManager
 from lib.galaxy.thumbnail_manager import ThumbnailManager
 from wetlands.environment_manager import EnvironmentManager
 
@@ -727,6 +728,7 @@ class UniverseApplication(StructuredApp, GalaxyManagerApplication, InstallationT
         
         
         self.napari_launcher = NapariLauncher(self.environment_manager)
+        self.code_manager = CodeManager(self.environment_manager)
         self.thumbnail_manager = ThumbnailManager(self.environment_manager)
 
         self.haltables = [

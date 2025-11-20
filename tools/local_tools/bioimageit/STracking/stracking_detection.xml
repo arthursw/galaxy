@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<tool id="stracking_detection" name="Stracking Detection DoH, LoG and DoG" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">bioimageit::stracking==0.1.5|osx-arm64</requirement>
+        <requirement type="package">bioimageit::stracking==v0.1.4|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">numpy==1.24.4</requirement>
+        <requirement type="package">scipy==1.9.3</requirement>
+        <requirement type="package">scikit-image==0.19.3</requirement>
+        <requirement type="package">pandas==1.5.3</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/stracking_detection_galaxy_wrapper.py' '${input_image}' --detector_type '${detector_type}' --min_sigma '${min_sigma}' --max_sigma '${max_sigma}' --n_sigmas '${n_sigmas}' --threshold '${threshold}' --ratio '${ratio}' --overlap '${overlap}' --log_scale ${log_scale} '${output}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input Image" help="Input Image" optional="false"/>
+        <param name="detector_type" argument="--detector_type" type="text" value="DoH" label="Type of Stracking detection, using DoH (Difference of Hessians), LoG (Laplacian of Gaussian) or DoG (Difference of Gaussians)" help="Type of Stracking detection, using DoH (Difference of Hessians), LoG (Laplacian of Gaussian) or DoG (Difference of Gaussians)">
+            <option value="DoH" selected="true">DoH</option>
+            <option value="LoG">LoG</option>
+            <option value="DoG">DoG</option>
+        </param>
+        <param name="min_sigma" argument="--min_sigma" type="float" value="1" label="Minimal sigma value" help="Minimal sigma value"/>
+        <param name="max_sigma" argument="--max_sigma" type="float" value="5" label="Maximal sigma value" help="Maximal sigma value"/>
+        <param name="n_sigmas" argument="--n_sigmas" type="integer" value="10" label="Number of sigmas (for DoH and LoG)" help="Number of sigmas (for DoH and LoG)"/>
+        <param name="threshold" argument="--threshold" type="float" value="0.2" label="Threshold" help="Threshold"/>
+        <param name="ratio" argument="--ratio" type="float" value="1.6" label="Sigma ratio (for DoG)" help="Sigma ratio (for DoG)"/>
+        <param name="overlap" argument="--overlap" type="float" value="0.5" label="Overlap" help="Overlap"/>
+        <param name="log_scale" argument="--log_scale" type="boolean" checked="false" label="Log scale (for DoH and LoG)" help="Log scale (for DoH and LoG)"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/stracking.txt"/>
+            <param name="min_sigma" value="3"/>
+            <param name="max_sigma" value="4"/>
+            <param name="n_sigmas" value="2"/>
+            <param name="output" value="test-data/stracking_results.csv"/>
+            <assert_contents file="output"/>
+        </test>
+    </tests>
+    <help>
+
+Scientific library track particles in 2D+t and 3D+t images. Detection using Difference of Hessians, Laplacian of Gaussian and Difference of Gaussians.
+
+</help>
+</tool>

@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<tool id="median_denoising" name="Median" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">sylvainprigent::simglib=0.1.2|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">python 3.9</requirement>
+    </requirements>
+    <command detect_errors="exit_code">python '$__tool_directory__/median_denoising_galaxy_wrapper.py' '${input_image}' --type '${type}' --radius_x '${radius_x}' --radius_y '${radius_y}' --radius_z '${radius_z}' --radius_t '${radius_t}' --padding ${padding} '${output}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input Image" help="Input Image" optional="false"/>
+        <param name="type" argument="--type" type="text" value="2D" label="Perform 2D, 3D or 3D + time denoising." help="Perform 2D, 3D or 3D + time denoising.">
+            <option value="2D" selected="true">2D</option>
+            <option value="3D">3D</option>
+            <option value="4D">4D</option>
+        </param>
+        <param name="radius_x" argument="--radius_x" type="integer" value="2" label="Radius of the filter in the X direction" help="Radius of the filter in the X direction"/>
+        <param name="radius_y" argument="--radius_y" type="integer" value="2" label="Radius of the filter in the Y direction" help="Radius of the filter in the Y direction"/>
+        <param name="radius_z" argument="--radius_z" type="integer" value="1" label="Radius of the filter in the Z direction (for 3D and 3D + time only)" help="Radius of the filter in the Z direction (for 3D and 3D + time only)"/>
+        <param name="radius_t" argument="--radius_t" type="integer" value="1" label="Radius of the filter in the time direction (for 3D + time only)" help="Radius of the filter in the time direction (for 3D + time only)"/>
+        <param name="padding" argument="--padding" type="boolean" checked="false" label="Add padding to process border pixels" help="Add padding to process border pixels"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+Median filtering.
+
+</help>
+</tool>

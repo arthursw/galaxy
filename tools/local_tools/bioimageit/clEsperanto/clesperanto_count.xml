@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<tool id="clesperanto_count" name="clEsperanto Count objects" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_count_galaxy_wrapper.py' '${input_image}' --sigma_x '${sigma_x}' --sigma_y '${sigma_y}' '${out}'</command>
+    <inputs>
+        <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>
+        <param name="sigma_x" argument="--sigma_x" type="float" value="0" label="sigma_x" help="sigma_x"/>
+        <param name="sigma_y" argument="--sigma_y" type="float" value="0" label="sigma_y" help="sigma_y"/>
+    </inputs>
+    <outputs>
+        <data name="out" format="csv"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input_image" value="test-data/segmentation.tif"/>
+            <param name="sigma_x" value="1"/>
+            <param name="sigma_y" value="1"/>
+            <param name="out" value="test-data/segmentation_count.csv"/>
+            <assert_contents file="out"/>
+        </test>
+    </tests>
+    <help>
+
+Count objects with clEsperanto.
+
+</help>
+</tool>

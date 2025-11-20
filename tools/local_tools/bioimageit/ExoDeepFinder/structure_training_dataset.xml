@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<tool id="structure_training_dataset" name="Structure training dataset" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/structure_training_dataset_galaxy_wrapper.py' '${movies_folder}' --split '${split}' '${movie}' '${merged_segmentation}' '${merged_annotation}' '${output}'</command>
+    <inputs>
+        <param name="movies_folder" argument="--movies_folder" type="data" format="png,tiff,tif" value="[workflow_folder]/dataset" label="Input movies folder" help="Input movies folder"/>
+        <param name="split" argument="--split" type="float" value="70" label="Splits the dataset in two random sets for training and validation, with --split %% of the movies in the training set, and the rest in the validation set (creates train/ and valid/ folders). Does not split if 0." help="Splits the dataset in two random sets for training and validation, with --split %% of the movies in the training set, and the rest in the validation set (creates train/ and valid/ folders). Does not split if 0."/>
+        <param name="movie" argument="--movie" type="data" format="png,tiff,tif" value="movie.h5" label="Path to the movie (relative to the movie folder)." help="Path to the movie (relative to the movie folder)."/>
+        <param name="merged_segmentation" argument="--merged_segmentation" type="data" format="png,tiff,tif" value="merged_segmentation.h5" label="Path to the merged segmentation (relative to the movie folder)." help="Path to the merged segmentation (relative to the movie folder)."/>
+        <param name="merged_annotation" argument="--merged_annotation" type="data" format="png,tiff,tif" value="merged_annotation.xml" label="Path to the merged annotation (relative to the movie folder)." help="Path to the merged annotation (relative to the movie folder)."/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt"/>
+    </outputs>
+    <help>
+
+Convert the default dataset structure to the training file structure.
+
+</help>
+</tool>

@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<tool id="generate_segmentation" name="Generate segmentation" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <command detect_errors="exit_code">python '$__tool_directory__/generate_segmentation_galaxy_wrapper.py' '${movie_folder}' '${movie}' '${annotation}' '${output_annotation}' '${output_segmentation}'</command>
+    <inputs>
+        <param name="movie_folder" argument="--movie_folder" type="data" format="png,tiff,tif" label="Input folder containing the movie files (a least a movie in h5 format, and an expert annotation file)." help="Input folder containing the movie files (a least a movie in h5 format, and an expert annotation file)." optional="false"/>
+        <param name="movie" argument="--movie" type="data" format="png,tiff,tif" value="movie.h5" label="Input movie." help="Input movie."/>
+        <param name="annotation" argument="--annotation" type="data" format="png,tiff,tif" value="expert_annotation.xml" label="Corresponding annotation (.xml generated with napari-exodeepfinder or equivalent, can also be a .csv file)." help="Corresponding annotation (.xml generated with napari-exodeepfinder or equivalent, can also be a .csv file)."/>
+    </inputs>
+    <outputs>
+        <data name="output_annotation" format="txt"/>
+        <data name="output_segmentation" format="txt"/>
+    </outputs>
+    <help>
+
+Generate segmentation from an annotation file.
+
+</help>
+</tool>
