@@ -43,7 +43,7 @@ class DesktopApi:
 
 
 class GalaxyLauncher:
-    def __init__(self, dev_mode=False):
+    def __init__(self, dev_mode=False, on_ready_callback=None):
         self.galaxy_process = None
         self.client_process = None
         self.dev_mode = dev_mode
@@ -55,6 +55,7 @@ class GalaxyLauncher:
         self.galaxy_ready = False
         self.client_ready = False
         self.script_dir = Path(__file__).parent.absolute()
+        self.on_ready_callback = on_ready_callback  # Callback when Galaxy is fully ready
 
     def start_galaxy_server(self):
         """Start the Galaxy server using uvicorn"""
@@ -229,6 +230,14 @@ class GalaxyLauncher:
         # Set the window reference on the API so it can access create_file_dialog()
         api.window = window
 
+        # Call the ready callback if provided (before showing window)
+        if self.on_ready_callback:
+            try:
+                print("Calling on_ready callback...")
+                self.on_ready_callback()
+            except Exception as e:
+                print(f"Warning: on_ready callback failed: {e}")
+
         # Start the webview (this blocks until window is closed)
         webview.start(debug=self.dev_mode)
 
@@ -261,6 +270,10 @@ class GalaxyLauncher:
             print("Galaxy server stopped.")
 
         print("Shutdown complete.")
+
+    def launch(self):
+        """Launch Galaxy (alias for run, for consistency with launcher.py)"""
+        self.run()
 
     def run(self):
         """Main run method"""
