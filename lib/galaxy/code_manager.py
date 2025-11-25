@@ -19,14 +19,7 @@ class CodeManager:
             'code-server --install-extension ms-python.python',
             'code-server --install-extension ms-python.vscode-python-envs',
             'code-server --install-extension ms-python.debugpy',
+            'code-server --install-extension detachhead.basedpyright',
             'code-server --disable-workspace-trust --disable-telemetry --auth none --bind-addr 127.0.0.1:32344' # Launch code-server
         ]
-        unixCommands = [
-            # 'code-server --install-extension ms-python.vscode-pylance', # The ID is not recognized because Pylance is not in the open marketplace, use the .vsix file instead
-            # Use if statement to avoid reinstalling Pylance if already installed, it is slow to reinstall (unlike the opener extension)
-            '( code-server --list-extensions | grep -q ms-python.vscode-pylance && echo "Pylance already installed" ) || code-server --install-extension ./ms-python.vscode-pylance-2025.9.1.vsix',
-        ] + commands
-        windowsCommands = [
-            'if (-not (code-server --list-extensions | Select-String -Quiet "ms-python.vscode-pylance")) { code-server --install-extension ./ms-python.vscode-pylance-2025.9.1.vsix } else { "Pylance already installed" }'
-        ] + commands
-        environment.executeCommands({"mac": unixCommands, "linux": unixCommands, "windows": windowsCommands})
+        environment.executeCommands(commands)
