@@ -22,11 +22,16 @@ parser.add_argument('--radius_x', help='Radius of the filter in the X direction'
 parser.add_argument('--radius_y', help='Radius of the filter in the Y direction')
 parser.add_argument('--radius_z', help='Radius of the filter in the Z direction (for 3D and 3D + time only)')
 parser.add_argument('--radius_t', help='Radius of the filter in the time direction (for 3D + time only)')
-parser.add_argument('--padding', action='store_true', help='Add padding to process border pixels')
+parser.add_argument('--padding', type=str, help='Add padding to process border pixels')
 parser.add_argument('output', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'padding') and isinstance(args.padding, str):
+    args.padding = args.padding.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

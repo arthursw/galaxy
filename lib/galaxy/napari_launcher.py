@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 from typing import cast
 
-from httpx import head
 from wetlands.environment_manager import EnvironmentManager
 from wetlands.external_environment import ExternalEnvironment
+from wetlands._internal.dependency_manager import Dependencies
 
 class NapariLauncher:
 
@@ -14,7 +14,7 @@ class NapariLauncher:
         self.environment_manager = environment_manager
 
     def launch_napari(self):
-        dependencies = {"python":"3.12", "conda":['conda-forge::napari', 'conda-forge::pyqt'], "pip":[]}
+        dependencies = Dependencies({"python":"3.12", "conda":['conda-forge::napari', 'conda-forge::pyqt'], "pip":[]})
         self.napari_environment: ExternalEnvironment = cast(ExternalEnvironment, self.environment_manager.create('napari', dependencies))
         
         env = os.environ.copy()
@@ -26,22 +26,24 @@ class NapariLauncher:
         if self.napari_environment_process is not None and self.napari_environment_process.poll() is None:
             return
 
-        self.napari_environment_process = self.napari_environment.executeCommands([f'python -u "napari_manager.py"'], {"env":env})
+        self.napari_environment_process = self.napari_environment.execute_commands([f'python -u "napari_manager.py"'], popen_kwargs={"env":env})
 
-        if self.napari_environment_process.stdout is not None:
-            try:
-                for line in self.napari_environment_process.stdout:
-                    if line.strip().startswith("Listening port "):
-                        self.port = int(line.strip().replace("Listening port ", ""))
-                        break
-            except Exception as e:
-                self.napari_environment_process.stdout.close()
-                raise e
+        # Retrieve the ProcessLogger that was already created and started by executeCommands
+        self._process_logger = self.environment_manager.get_process_logger(self.napari_environment_process)
+        if self._process_logger is None:
+            raise Exception("Failed to retrieve ProcessLogger for module executor process")
+
+        # Wait for port announcement with timeout
+        def port_predicate(line: str) -> bool:
+            return line.startswith("Listening port ")
+
+        port_line = self._process_logger.wait_for_line(port_predicate, timeout=30)
+        if port_line:
+            self.port = int(port_line.replace("Listening port ", ""))
 
         if self.napari_environment_process.poll() is not None:
-            if self.napari_environment_process.stdout is not None:
-                self.napari_environment_process.stdout.close()
             raise Exception(f"Process exited with return code {self.napari_environment_process.returncode}.")
+        
         if self.port is None:
             raise Exception(f"Could not find the server port.")
         self.napari_connection = Client(("localhost", self.port))

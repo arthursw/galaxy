@@ -1,6 +1,6 @@
 <tool id="custom_atlas" name="Atlas" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
     <requirements>
-        <requirement type="package" version="v1.0.3" channel="bioimageit">atlas</requirement>
+        <requirement type="package" version="1.0.3" channel="bioimageit">atlas</requirement>
     </requirements>
     <command detect_errors="exit_code">
         <![CDATA[

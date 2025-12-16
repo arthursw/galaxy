@@ -19,11 +19,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument('movie', type=Path, help='Exocytosis movie (in .h5 format).')
 parser.add_argument('model_weights', type=Path, help='Model weigths (in .h5 format).')
 parser.add_argument('--patch_size', help='Patch size (the movie is split in cubes of --patch_size before being processed). Must be a multiple of 4.')
-parser.add_argument('--visualization', action='store_true', help='Generate visualization images.')
+parser.add_argument('--visualization', type=str, help='Generate visualization images.')
 parser.add_argument('segmentation', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'visualization') and isinstance(args.visualization, str):
+    args.visualization = args.visualization.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

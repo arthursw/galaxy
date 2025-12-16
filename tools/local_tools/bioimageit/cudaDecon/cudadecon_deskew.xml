@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <tool id="cudadecon_deskew" name="condaDecon" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
     <requirements>
-        <requirement type="package">conda-forge::pycudadecon|linux-64,win-64</requirement>
+        <requirement type="package">conda-forge::pycudadecon</requirement>
         <requirement type="package">scikit-image==0.24.0</requirement>
     </requirements>
     <command detect_errors="exit_code">python '$__tool_directory__/cudaDecon_deskew_galaxy_wrapper.py' '${input_image}' --dxdata '${dxdata}' --dzdata '${dzdata}' --angle '${angle}' --width '${width}' --shift '${shift}' --pad_val '${pad_val}' '${output_image}'</command>

@@ -22,4 +22,4 @@ class CodeManager:
             'code-server --install-extension detachhead.basedpyright',
             'code-server --disable-workspace-trust --disable-telemetry --auth none --bind-addr 127.0.0.1:32344' # Launch code-server
         ]
-        environment.executeCommands(commands)
+        environment.execute_commands(commands)

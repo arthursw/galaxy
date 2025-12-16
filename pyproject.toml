@@ -106,7 +106,7 @@ dependencies = [
     "uvicorn!=0.28.0",  # https://github.com/galaxyproject/galaxy/issues/17669
     "uvloop>=0.21.0",  # Python 3.13 support
     "WebOb>=1.8.9",  # Python 3.13 support
-    "wetlands>=0.2.2,<0.3",
+    "wetlands>=0.4.10,<0.5",
     "Whoosh",
     "pywebview>=6.0",
     "zipstream-new",

@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <tool id="atlas" name="Atlas" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
     <requirements>
-        <requirement type="package">bioimageit::atlas|win-64,linux-64,osx-arm64</requirement>
+        <requirement type="package">bioimageit::atlas</requirement>
     </requirements>
     <command detect_errors="exit_code">python '$__tool_directory__/atlas_galaxy_wrapper.py' '${input_image}' --gaussian_std '${gaussian_std}' --p_value '${p_value}' --area_lim '${area_lim}' --verbose ${verbose} '${output_image}'</command>
     <inputs>

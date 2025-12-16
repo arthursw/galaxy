@@ -20,11 +20,16 @@ parser.add_argument('input_image', type=Path, help='The input image path. The wi
 parser.add_argument('--gaussian_std', help='Standard deviation of the Gaussian window (0 for global threshold).')
 parser.add_argument('--p_value', help='P-value to account for the probability of false detection.')
 parser.add_argument('--area_lim', help='Remove detections smaller than this area.')
-parser.add_argument('--verbose', action='store_true', help='Verbose mode.')
+parser.add_argument('--verbose', type=str, help='Verbose mode.')
 parser.add_argument('output_image', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'verbose') and isinstance(args.verbose, str):
+    args.verbose = args.verbose.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

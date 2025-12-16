@@ -1,5 +1,9 @@
 <?xml version="1.0" ?>
 <tool id="clesperanto_basic_stats" name="clEsperanto Basic Stats" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+    <requirements>
+        <requirement type="package">pyopencl</requirement>
+        <requirement type="package">pyclesperanto-prototype</requirement>
+    </requirements>
     <command detect_errors="exit_code">python '$__tool_directory__/clEsperanto_basic_stats_galaxy_wrapper.py' '${input_image}' --spot_sigma '${spot_sigma}' '${out}'</command>
     <inputs>
         <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="Input image path" help="Input image path"/>

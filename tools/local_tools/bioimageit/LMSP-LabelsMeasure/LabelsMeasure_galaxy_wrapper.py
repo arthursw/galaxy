@@ -19,11 +19,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument('input_image', type=Path, help='The input image path.')
 parser.add_argument('label', type=Path, help='Label image path, from cellpose for instance.')
 parser.add_argument('--pixel', help='Size of the pixel erosion')
-parser.add_argument('--binary_map', action='store_true', help='If false, labels in your black & white image')
+parser.add_argument('--binary_map', type=str, help='If false, labels in your black & white image')
 parser.add_argument('out', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'binary_map') and isinstance(args.binary_map, str):
+    args.binary_map = args.binary_map.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

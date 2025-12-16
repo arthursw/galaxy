@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <tool id="nd_safir" name="ND-Safir" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
     <requirements>
-        <requirement type="package">bioimageit::ndsafir|osx-64,win-64,linux-64</requirement>
+        <requirement type="package">bioimageit::ndsafir</requirement>
         <requirement type="package">python 3.9</requirement>
     </requirements>
     <command detect_errors="exit_code">python '$__tool_directory__/nd_safir_galaxy_wrapper.py' '${input_image}' --type '${type}' --noise '${noise}' --patch '${patch}' --noise_factor '${noise_factor}' --n_iterations '${n_iterations}' --time_series ${time_series} --n_frames '${n_frames}' '${output_image}'</command>

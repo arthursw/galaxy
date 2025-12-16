@@ -17,13 +17,18 @@ parser = argparse.ArgumentParser(
 
 # Add arguments
 parser.add_argument('input_image', type=Path, help='Input image path')
-parser.add_argument('--corrected_binary', action='store_true', help='if non corrected is not good')
+parser.add_argument('--corrected_binary', type=str, help='if non corrected is not good')
 parser.add_argument('--radius_x', help='radius_x')
 parser.add_argument('--radius_y', help='radius_y')
 parser.add_argument('out', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'corrected_binary') and isinstance(args.corrected_binary, str):
+    args.corrected_binary = args.corrected_binary.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

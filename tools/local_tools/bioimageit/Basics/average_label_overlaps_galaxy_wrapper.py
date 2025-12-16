@@ -19,11 +19,16 @@ parser = argparse.ArgumentParser(
 # Add arguments
 parser.add_argument('--label1_min', help='The minimum value of label1 to keep. Ignored if None (None by default).')
 parser.add_argument('--label1_max', help='The maximum value of label1 to keep. Ignored if None (None by default).')
-parser.add_argument('--average', action='store_true', help='Compute average number of label2 per label1 instead of number of label2 by label1')
+parser.add_argument('--average', type=str, help='Compute average number of label2 per label1 instead of number of label2 by label1')
 parser.add_argument('--input_dataframe', type=Path, help='Input CSV DataFrame')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'average') and isinstance(args.average, str):
+    args.average = args.average.lower() == 'true'
+
 
 # Create tool instance
 tool = Tool()

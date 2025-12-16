@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
 <toolbox monitor="true">
   <section id="getext" name="Get Data">
     <tool file="data_source/diced.xml" />
@@ -268,4 +269,4 @@
 
   </section>
 
-</toolbox>
+<tool file="local_tools/extract_3_channels/extract_3_channels.xml" /></toolbox>

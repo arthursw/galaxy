@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
-<tool id="cellpose_segment" name="Cellpose" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
+<tool id="cellpose_segment" name="Cellpose Segment" version="0.1.0+galaxy0" python_template_version="3.5" profile="21.05">
     <requirements>
         <requirement type="package">pandas==2.1.4</requirement>
         <requirement type="package">cellpose==3.1.0</requirement>
     </requirements>
-    <command detect_errors="exit_code">python '$__tool_directory__/cellpose_segment_galaxy_wrapper.py' '${input_image}' --model_type '${model_type}' --use_gpu ${use_gpu} --auto_diameter ${auto_diameter} --diameter '${diameter}' --channels '${channels}' '${segmentation}' '${visualization}'</command>
+    <command detect_errors="exit_code">python '$__tool_directory__/cellpose_segment_galaxy_wrapper.py' '${input_image}' --model_type '${model_type}' --use_gpu ${use_gpu} --auto_diameter ${auto_diameter} --diameter '${diameter}' --channels '${channels}' '${segmentation}'</command>
     <inputs>
         <param name="input_image" argument="--input_image" type="data" format="png,tiff,tif" label="The input image path." help="The input image path." optional="false"/>
         <param name="model_type" argument="--model_type" type="text" value="cyto" label="Model type. “cyto”=cytoplasm model; “nuclei”=nucleus model; “cyto2”=cytoplasm model with additional user images; “cyto3”=super-generalist model." help="Model type. “cyto”=cytoplasm model; “nuclei”=nucleus model; “cyto2”=cytoplasm model with additional user images; “cyto3”=super-generalist model.">
@@ -19,14 +19,12 @@
         <param name="channels" argument="--channels" type="text" value="[0,0]" label="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus." help="Channels to run segementation on. For example: &quot;[0,0]&quot; for grayscale, &quot;[2,3]&quot; for G=cytoplasm and B=nucleus, &quot;[2,1]&quot; for G=cytoplasm and R=nucleus."/>
     </inputs>
     <outputs>
-        <data name="segmentation" format="png"/>
-        <data name="visualization" format="npy"/>
+        <data name="segmentation" format="tif"/>
     </outputs>
     <tests>
         <test>
             <param name="input_image" value="test-data/img02.png"/>
             <param name="segmentation" value="test-data/img02_segmentation.png"/>
-            <param name="visualization" value="test-data/img02_segmentation.npy"/>
             <assert_contents file="segmentation"/>
             <assert_contents file="visualization"/>
         </test>

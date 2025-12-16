@@ -24,11 +24,16 @@ parser.add_argument('--n_sigmas', help='Number of sigmas (for DoH and LoG)')
 parser.add_argument('--threshold', help='Threshold')
 parser.add_argument('--ratio', help='Sigma ratio (for DoG)')
 parser.add_argument('--overlap', help='Overlap')
-parser.add_argument('--log_scale', action='store_true', help='Log scale (for DoH and LoG)')
+parser.add_argument('--log_scale', type=str, help='Log scale (for DoH and LoG)')
 parser.add_argument('output', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'log_scale') and isinstance(args.log_scale, str):
+    args.log_scale = args.log_scale.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

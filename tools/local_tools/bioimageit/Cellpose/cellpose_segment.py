@@ -7,7 +7,7 @@ class Tool:
     categories = ['Segmentation']
     dependencies = dict(conda=[], pip=['pandas==2.1.4', 'cellpose==3.1.0']) # cellpose or other package needs numpy < 2 (on macOS x86) so install pandas 2.1.4 which required numpy < 2 before installing cellpose
     environment = 'cellpose'
-    test = ['--input_image', 'img02.png', '--segmentation', 'img02_segmentation.png', '--visualization', 'img02_segmentation.npy']
+    test = ['--input_image', 'img02.png', '--segmentation', 'img02_segmentation.png']
     modelType = None
     
     name = "Cellpose"
@@ -63,14 +63,7 @@ class Tool:
                 name = 'segmentation',
                 shortname = 's',
                 help = 'The output segmentation path.',
-                default = '{input_image.stem}_segmentation.png',
-                type = 'Path',
-            ),
-            dict(
-                name = 'visualization',
-                shortname = 'v',
-                help = 'The output visualisation path.',
-                default = '{input_image.stem}_visualization.npy',
+                default = '{input_image.stem}_segmentation.tif',
                 type = 'Path',
             ),
     ]
@@ -79,7 +72,6 @@ class Tool:
 
         if not args.input_image.exists():
             raise Exception(f'Error: input image {args.input_image} does not exist.')
-        input_image = str(args.input_image)
         
         print(f'[[1/5]] Load libraries and model {args.model_type}')
         print('Loading libraries...')
@@ -91,9 +83,13 @@ class Tool:
             self.modelType = args.model_type
             self.model = cellpose.models.Cellpose(gpu=True if args.use_gpu == 'True' else args.use_gpu, model_type=self.modelType)
 
+        input_image = f'{args.input_image}.tif'
         print(f'[[2/5]] Load image {input_image}')
         channels = json.loads(args.channels)
-        image = cellpose.io.imread(input_image)
+        link = Path(input_image)
+        if not link.exists():
+            link.symlink_to(args.input_image)
+        image = cellpose.io.imread(link)
         auto_diameter = args.auto_diameter if type(args.auto_diameter) is bool else args.auto_diameter == 'True'
 
         print('[[3/5]] Compute segmentation', image.shape)
@@ -102,19 +98,11 @@ class Tool:
         
         input_image = Path(input_image)
 
-        if args.visualization:
-            print(f'[[4/5]] Save visualization file {args.visualization}')
-            # save results so you can load in gui
-            cellpose.io.masks_flows_to_seg(image, masks, flows, input_image, diams, channels)
-            if args.visualization.exists(): args.visualization.unlink()
-            shutil.move(input_image.parent / f'{input_image.stem}_seg.npy', args.visualization)
-            print(f'Saved visualization: {args.visualization}')
-
         if args.segmentation:
             print(f'[[5/5]] Save segmentation {args.segmentation}')
             # save results as png
-            cellpose.io.save_masks(image, masks, flows, input_image)
-            output_mask = input_image.parent / f'{input_image.stem}_cp_masks.png'
+            cellpose.io.save_masks(image, masks, flows, input_image, tif=True)
+            output_mask = input_image.parent / f'{input_image.stem}_cp_masks.tif'
             if output_mask.exists():
                 if args.segmentation.exists(): args.segmentation.unlink()
                 shutil.move(output_mask, args.segmentation)

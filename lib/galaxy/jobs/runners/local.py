@@ -2,6 +2,7 @@
 Job runner plugin for executing jobs on the local system via the command line.
 """
 
+from contextlib import contextmanager
 import logging
 from pathlib import Path
 import re
@@ -13,13 +14,24 @@ import typing
 from galaxy.jobs.runners.local_legacy import LegacyLocalJobRunner
 from wetlands.external_environment import ExternalEnvironment
 from wetlands._internal.dependency_manager import Dependencies
-from wetlands.logger import logger
-
 
 
 __all__ = ("LocalJobRunner",)
-logger.setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+@contextmanager
+def capture_execution_logs(output_file: Path):
+    """Context manager to capture all logs during execution to a file."""
+    handler = logging.FileHandler(output_file)
+    handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logger = logging.getLogger("wetlands")
+    logger.addHandler(handler)
+    try:
+        yield
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
 
 class LocalJobRunner(LegacyLocalJobRunner):
     """
@@ -81,34 +93,19 @@ class LocalJobRunner(LegacyLocalJobRunner):
             self.tracker.show_elapsed("   launch env")
             if not environment.launched():
                 log.debug(f"Launch {environment_name} environment")
-                environment.launch(logOutputInThread=False)
+                environment.launch()
 
             self.tracker.show_elapsed("   execute env")
             log.debug(f"Execute {python_script_path} in {environment_name} with args {command_parts[2:]}")
             # environment_logger = EnvironmentLogger()
 
-            def processStdOut(environment, stdout_file):
-                while True:
-                    line = environment.loggingQueue.get()
-                    if line is None:
-                        break
-                    line = line.strip()
-                    log.debug(line)
-                    stdout_file.write((line + "\n").encode("utf-8", errors="replace"))
-                    stdout_file.flush()
-
-            # logging_thread = threading.Thread(target=environment_logger.logStdOut, args=[environment.process, stdout_file])
-            logging_thread = threading.Thread(target=processStdOut, args=[environment, stdout_file])
-            
             try:
-                logging_thread.start()
 
-                environment.runScript(python_script_path.resolve(), tuple(command_parts[2:]))
+                with capture_execution_logs(stdout_file.name):
+                    environment.run_script(python_script_path.resolve(), tuple(command_parts[2:]))
             except Exception as e:
                 raise e
-            finally:
-                environment.loggingQueue.put(None)
-                logging_thread.join()
+
             log.debug(f"Execution done")
 
             self.tracker.show_elapsed("   execution finished")
@@ -140,7 +137,7 @@ class LocalJobRunner(LegacyLocalJobRunner):
                         if environment is not None:
                             
                             # Rewrite tool_script.sh so that it first activated the env and then execute the command
-                            commands = self._environment_manager.commandGenerator.getActivateEnvironmentCommands(environment.name)
+                            commands = self._environment_manager.command_generator.get_activate_environment_commands(environment)
                             commands += [" ".join(command_parts)]
                             with open(Path(job_wrapper.working_directory) / "tool_script.sh", "w") as f:
                                 f.write("\n".join(commands))
@@ -183,8 +180,8 @@ class LocalJobRunner(LegacyLocalJobRunner):
                                     # process = environment.process
 
                                     self.tracker.show_elapsed("   write output and script files")
-                                    stdout_path = Path(job_wrapper.working_directory) / 'outputs' / 'tool_stdout'
-                                    stderr_path = Path(job_wrapper.working_directory) / 'outputs' / 'tool_stderr'
+                                    stdout_path = Path(job_wrapper.working_directory) / 'outputs' / 'tool_stdout_tmp'
+                                    stderr_path = Path(job_wrapper.working_directory) / 'outputs' / 'tool_stderr_tmp'
 
                                     shutil.copy(stdout_file.name, stdout_path)
                                     # Create an empty stderr file
@@ -212,5 +209,5 @@ class LocalJobRunner(LegacyLocalJobRunner):
             log.exception("failure running job %d", job_wrapper.job_id)
             self._fail_job_local(job_wrapper, "failure running job")
             return
-                
+        
         self.queue_job_execute(job_wrapper, process, stdout_file)

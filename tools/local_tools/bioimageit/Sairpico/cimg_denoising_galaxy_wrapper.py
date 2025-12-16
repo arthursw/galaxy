@@ -24,9 +24,9 @@ parser.add_argument('--scale', help='Resize the volume in the range [0.5 - 1.5] 
 parser.add_argument('--range', help='Automatic intensity scaling (-1) or manual scaling')
 parser.add_argument('--algo', help='Algorithm name')
 parser.add_argument('--ng', help='Add artificial Gaussian noise before applying the algorithm')
-parser.add_argument('--np', action='store_true', help='Add artificial Poisson noise before applying the algorithm')
+parser.add_argument('--np', type=str, help='Add artificial Poisson noise before applying the algorithm')
 parser.add_argument('--msg', help='Adjust manually the assumed Gaussian noise standard deviation')
-parser.add_argument('--stab', action='store_true', help='Variance stabilization for Poisson noise removal')
+parser.add_argument('--stab', type=str, help='Variance stabilization for Poisson noise removal')
 parser.add_argument('--patch', help='Half size of the patch (NLMeans, PEWA, OWF, SAFIR, DCT, Wiener)')
 parser.add_argument('--neigh', help='Half size of the neighborhood (NLMeans, PEWA, OWF, SAFIR, DCT, Median, Bilateral)')
 parser.add_argument('--denoisep', help='Denoising parameter (NLMeans: 3.5 | DCT: 3.0 | Wiener: 1.25 | Bilateral: 2.0 | Gaussian: 1.0 | TV: 6.0 | SV: 6.0 | HV: 6.0)')
@@ -36,6 +36,13 @@ parser.add_argument('output_image', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'np') and isinstance(args.np, str):
+    args.np = args.np.lower() == 'true'
+if hasattr(args, 'stab') and isinstance(args.stab, str):
+    args.stab = args.stab.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

@@ -27,6 +27,19 @@ parser.add_argument('output', type=Path, help='Output file')
 # Parse arguments
 args = parser.parse_args()
 
+# Unescape Galaxy's bracket sanitization (__ob__ -> [, __cb__ -> ])
+def unescape_brackets(value):
+    if isinstance(value, str):
+        return value.replace('__ob__', '[').replace('__cb__', ']')
+    return value
+
+for attr in dir(args):
+    if not attr.startswith('_'):
+        val = getattr(args, attr)
+        if isinstance(val, str):
+            setattr(args, attr, unescape_brackets(val))
+
+
 # Create tool instance and call processData
 tool = Tool()
 

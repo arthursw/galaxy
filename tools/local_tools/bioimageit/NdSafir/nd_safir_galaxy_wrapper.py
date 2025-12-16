@@ -22,12 +22,17 @@ parser.add_argument('--noise', help='Model used to evaluate the noise variance.'
 parser.add_argument('--patch', help='Patch radius. Must be of the form AxB (for 2D) or AxBxC (for 3D) where A, B and C are the patch radius in each dimension.')
 parser.add_argument('--noise_factor', help='Noise factor.')
 parser.add_argument('--n_iterations', help='Number of iterations.')
-parser.add_argument('--time_series', action='store_true', help='Consider the image as a sequence (for 3D only).')
+parser.add_argument('--time_series', type=str, help='Consider the image as a sequence (for 3D only).')
 parser.add_argument('--n_frames', help='Number of frames to process in a batch. Use 0 to process everything at once (for 4D only).')
 parser.add_argument('output_image', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'time_series') and isinstance(args.time_series, str):
+    args.time_series = args.time_series.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()

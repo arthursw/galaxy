@@ -5,6 +5,7 @@ This module provides functionality for executing tools using Wetlands
 environment manager with conda dependency resolution.
 """
 
+from contextlib import contextmanager
 import logging
 import re
 import shlex
@@ -17,9 +18,22 @@ log = logging.getLogger(__name__)
 from wetlands.external_environment import ExternalEnvironment
 from wetlands._internal.dependency_manager import Dependencies
 
+@contextmanager
+def capture_execution_logs(output_file: Path):
+    """Context manager to capture all logs during execution to a file."""
+    logger = logging.getLogger("wetlands")
+    handler = logging.FileHandler(output_file)
+    logger.addHandler(handler)
+
+    try:
+        yield
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
+
 def execute_directly(environment, command):
     """Execute a command directly without wrapping."""
-    process = environment.executeCommands(command)
+    process = environment.execute_commands(command)
     stdout = ""
     if process.stdout is not None:
         for line in process.stdout:
@@ -86,32 +100,15 @@ def execute_with_wetlands(environment_manager, tool, command, working_dir) -> Tu
         log.info(f"  Launching environment...")
         environment.launch()
 
-    # Create stdout capture
-    stdout_content = []
-
-    def process_stdout(env, output_list):
-        while True:
-            line = env.loggingQueue.get()
-            if line is None:
-                break
-            line = line.strip()
-            log.info(f"    {line}")
-            output_list.append(line)
-
-    # Start logging thread
-    logging_thread = threading.Thread(target=process_stdout, args=[environment, stdout_content])
-
     try:
-        logging_thread.start()
         log.info(f"  Executing script: {python_script_path.name}")
         command_parts = [cp.strip() for cp in command_parts]
-        environment.runScript(python_script_path.resolve(), tuple(command_parts[2:]))
+        
+        with capture_execution_logs(Path(working_dir) / "execution.log"):
+            environment.run_script(python_script_path.resolve(), tuple(command_parts[2:]))
         exit_code = 0
     except Exception as e:
         log.error(f"  Error during execution: {e}")
         exit_code = 1
-    finally:
-        environment.loggingQueue.put(None)
-        logging_thread.join()
 
-    return exit_code, "\n".join(stdout_content)
+    return exit_code, (Path(working_dir) / "execution.log").read_text()

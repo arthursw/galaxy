@@ -722,6 +722,9 @@ class UniverseApplication(StructuredApp, GalaxyManagerApplication, InstallationT
     model: GalaxyModelMapping
 
     def __init__(self, **kwargs) -> None:
+        logging.getLogger("wetlands").addHandler(logging.StreamHandler())
+        logging.getLogger("wetlands").setLevel(logging.INFO)
+        
         self.environment_manager = EnvironmentManager(debug=True)
         startup_timer = ExecutionTimer()
         super().__init__(fsmon=True, **kwargs)

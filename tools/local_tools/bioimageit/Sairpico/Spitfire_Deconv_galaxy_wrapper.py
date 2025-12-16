@@ -23,11 +23,16 @@ parser.add_argument('psf', type=Path, help='PSF Image (for 3D only)')
 parser.add_argument('--regularization', help='Regularization parameter pow(2,-x)')
 parser.add_argument('--weighting', help='Weighting')
 parser.add_argument('--method', help='Method for regularization')
-parser.add_argument('--padding', action='store_true', help='Add padding to process border pixels')
+parser.add_argument('--padding', type=str, help='Add padding to process border pixels')
 parser.add_argument('output', type=Path, help='Output file')
 
 # Parse arguments
 args = parser.parse_args()
+
+# Convert string boolean values from Galaxy XML to actual booleans
+if hasattr(args, 'padding') and isinstance(args.padding, str):
+    args.padding = args.padding.lower() == 'true'
+
 
 # Create tool instance and call processData
 tool = Tool()
