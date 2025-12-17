@@ -1,39 +1,62 @@
 <template>
     <div id="app" :style="theme">
-        <div id="everything">
-            <div id="background" />
-            <template v-if="!embedded">
-                <Masthead
-                    v-if="showMasthead"
-                    id="masthead"
-                    :brand="config.brand"
-                    :logo-url="config.logo_url"
-                    :logo-src="theme?.['--masthead-logo-img'] ?? config.logo_src"
-                    :logo-src-secondary="theme?.['--masthead-logo-img-secondary'] ?? config.logo_src_secondary"
-                    :window-tab="windowTab" />
-                <Alert
-                    v-if="config.message_box_visible && config.message_box_content"
-                    id="messagebox"
-                    class="rounded-0 m-0 p-2"
-                    :variant="config.message_box_class || 'info'">
-                    <span class="fa fa-fw mr-1 fa-exclamation" />
-                    <!-- eslint-disable-next-line vue/no-v-html -->
-                    <span v-html="config.message_box_content"></span>
-                </Alert>
-                <Alert
-                    v-if="config.show_inactivity_warning && config.inactivity_box_content"
-                    id="inactivebox"
-                    class="rounded-0 m-0 p-2"
-                    variant="warning">
-                    <span class="fa fa-fw mr-1 fa-exclamation-triangle" />
-                    <span>{{ config.inactivity_box_content }}</span>
-                    <span>
-                        <a class="ml-1" :href="resendUrl">Resend Verification</a>
-                    </span>
-                </Alert>
-            </template>
+        <div id="app-layout" class="app-layout">
+            <div id="everything">
+                <div id="background" />
+                <template v-if="!embedded">
+                    <Masthead
+                        v-if="showMasthead"
+                        id="masthead"
+                        :brand="config.brand"
+                        :logo-url="config.logo_url"
+                        :logo-src="theme?.['--masthead-logo-img'] ?? config.logo_src"
+                        :logo-src-secondary="theme?.['--masthead-logo-img-secondary'] ?? config.logo_src_secondary"
+                        :window-tab="windowTab" />
+                    <Alert
+                        v-if="config.message_box_visible && config.message_box_content"
+                        id="messagebox"
+                        class="rounded-0 m-0 p-2"
+                        :variant="config.message_box_class || 'info'">
+                        <span class="fa fa-fw mr-1 fa-exclamation" />
+                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <span v-html="config.message_box_content"></span>
+                    </Alert>
+                    <Alert
+                        v-if="config.show_inactivity_warning && config.inactivity_box_content"
+                        id="inactivebox"
+                        class="rounded-0 m-0 p-2"
+                        variant="warning">
+                        <span class="fa fa-fw mr-1 fa-exclamation-triangle" />
+                        <span>{{ config.inactivity_box_content }}</span>
+                        <span>
+                            <a class="ml-1" :href="resendUrl">Resend Verification</a>
+                        </span>
+                    </Alert>
+                </template>
 
-            <router-view @update:confirmation="confirmation = $event" />
+                <router-view @update:confirmation="confirmation = $event" />
+            </div>
+
+            <!-- Code-Server Separator -->
+            <button
+                v-if="showCodeServerPanel && !embedded"
+                type="button"
+                class="code-server-separator"
+                :class="{ dragging: isDraggingCodeServerSeparator }"
+                aria-label="Resize editor panel"
+                title="Drag to resize editor panel"
+                @mousedown="startCodeServerResize" />
+
+            <!-- Code-Server Panel -->
+            <div
+                v-if="showCodeServerPanel && !embedded"
+                class="code-server-panel-wrapper"
+                :style="{ width: `${codeServerPanelWidth}px` }">
+                <CodeServerPanel :tool="currentCodeServerTool" @close="closeCodeServerPanel" />
+            </div>
+
+            <!-- Pointer events blocker during resize -->
+            <div v-if="isDraggingCodeServerSeparator" class="resize-overlay" />
         </div>
         <template v-if="!embedded">
             <div id="dd-helper" />
@@ -57,11 +80,13 @@ import { WindowManager } from "layout/window-manager";
 import Modal from "mvc/ui/ui-modal";
 import { getAppRoot } from "onload";
 import { storeToRefs } from "pinia";
-import { ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router/composables";
 
+import CodeServerPanel from "@/components/CodeServer/CodeServerPanel.vue";
 import short from "@/components/plugins/short";
 import { useRouteQueryBool } from "@/composables/route";
+import { useCodeServerStore } from "@/stores/codeServerStore";
 import { useEntryPointStore } from "@/stores/entryPointStore";
 import { useHistoryStore } from "@/stores/historyStore";
 import { useNotificationsStore } from "@/stores/notificationsStore";
@@ -76,6 +101,7 @@ import UploadModal from "components/Upload/UploadModal.vue";
 export default {
     components: {
         Alert,
+        CodeServerPanel,
         DragGhost,
         Masthead,
         Toast,
@@ -127,6 +153,51 @@ export default {
             }
         );
 
+        // Code Server Panel integration
+        const codeServerStore = useCodeServerStore();
+        const { showPanel: showCodeServerPanel, currentTool: currentCodeServerTool, panelWidth: codeServerPanelWidth } =
+            storeToRefs(codeServerStore);
+
+        const isDraggingCodeServerSeparator = ref(false);
+        const startX = ref(0);
+        const startWidth = ref(0);
+
+        function startCodeServerResize(event) {
+            isDraggingCodeServerSeparator.value = true;
+            startX.value = event.clientX;
+            startWidth.value = codeServerPanelWidth.value;
+        }
+
+        function handleCodeServerResize(event) {
+            if (!isDraggingCodeServerSeparator.value) {
+                return;
+            }
+
+            const deltaX = event.clientX - startX.value;
+            const newWidth = startWidth.value - deltaX;
+            codeServerStore.setPanelWidth(newWidth);
+        }
+
+        function stopCodeServerResize() {
+            isDraggingCodeServerSeparator.value = false;
+        }
+
+        function closeCodeServerPanel() {
+            codeServerStore.closePanel();
+        }
+
+        // Add global resize listeners on mount
+        onMounted(() => {
+            document.addEventListener("mousemove", handleCodeServerResize);
+            document.addEventListener("mouseup", stopCodeServerResize);
+        });
+
+        // Clean up listeners on unmount
+        onUnmounted(() => {
+            document.removeEventListener("mousemove", handleCodeServerResize);
+            document.removeEventListener("mouseup", stopCodeServerResize);
+        });
+
         return {
             confirmation,
             toastRef,
@@ -135,6 +206,13 @@ export default {
             currentTheme,
             currentHistory,
             embedded,
+            // Code Server Panel
+            showCodeServerPanel,
+            currentCodeServerTool,
+            codeServerPanelWidth,
+            isDraggingCodeServerSeparator,
+            startCodeServerResize,
+            closeCodeServerPanel,
         };
     },
     data() {
@@ -220,4 +298,56 @@ export default {
 
 <style lang="scss">
 @import "custom_theme_variables.scss";
+</style>
+
+<style scoped>
+.app-layout {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+}
+
+#everything {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.code-server-panel-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-left: 1px solid #e0e0e0;
+    background-color: #1e1e1e;
+    position: relative;
+}
+
+.code-server-separator {
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+    background-color: #e0e0e0;
+    border: none;
+    border-left: 1px solid #d0d0d0;
+    border-right: 1px solid #f0f0f0;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background-color 0.2s;
+}
+
+.code-server-separator:hover,
+.code-server-separator.dragging {
+    background-color: #0078d4;
+}
+
+.resize-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    cursor: col-resize;
+}
 </style>

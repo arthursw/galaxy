@@ -3692,6 +3692,25 @@ mapping:
 
           Example value 'sudo -E scripts/external_chown_script.py'
 
+      code_editor_command:
+        type: str
+        default: ''
+        required: false
+        desc: |
+          Command to open tool files in an external code editor. Use {file_path}
+          as placeholder for the file path. If no {file_path} placeholder is
+          present, the file path will be appended to the end of the command.
+
+          If empty (default), tools will be opened in the built-in web-based
+          code editor (code-server) instead of an external editor.
+
+          If set to a command, the external editor will be launched and the
+          built-in web editor will not be opened.
+
+          Example value 'code {file_path}'  (VS Code)
+          Example value 'vim {file_path}'   (Vim)
+          Example value '/usr/local/bin/subl'  (Sublime Text)
+
       real_system_username:
         type: str
         default: user_email

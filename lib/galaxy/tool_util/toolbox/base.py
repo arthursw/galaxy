@@ -1319,8 +1319,12 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
             log.exception(f"Error deleting tool config: {e}")
             return {"error": str(e)}, "error"
 
-    def open_tool_in_vscode(self, tool_id: str):
-        """Open a tool in VS Code."""
+    def open_tool_in_code_editor(self, tool_id: str):
+        """Open a tool in a code editor.
+
+        If code_editor_command is empty, returns external_editor=False to signal
+        that the frontend should use its built-in editor instead.
+        """
         if tool_id not in self._tool_versions_by_id:
             return {"error": "Tool not found"}, "error"
 
@@ -1333,25 +1337,40 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
             return {"error": "Tool config file not found"}, "error"
 
         try:
-            import subprocess
             tool_dir = Path(tool_config_path).parent
 
             # Get the Python file path (assuming it has the same name as tool_id)
             tool_id_clean = tool_id.replace("custom_", "")
             python_file = tool_dir / f"{tool_id}.py"
 
-            # Open both XML and Python files in VS Code
+            # Collect files to open
             files_to_open = [str(tool_config_path)]
             if python_file.exists():
                 files_to_open.append(str(python_file))
 
-            # Use 'code' command to open files in VS Code
-            subprocess.Popen(["code"] + files_to_open)
+            # Get command from config (empty string means use frontend editor only)
+            cmd_template = getattr(self.app.config, "code_editor_command", "") or ""
 
-            message = {"id": tool_id, "files": files_to_open, "status": "opened"}
+            # If no external editor command configured, signal frontend to use its editor
+            if not cmd_template.strip():
+                message = {"id": tool_id, "files": files_to_open, "external_editor": False, "status": "opened"}
+                return message, "done"
+
+            # Open each file with the configured external editor command
+            import shlex
+            import subprocess
+
+            for file_path in files_to_open:
+                if "{file_path}" in cmd_template:
+                    cmd = cmd_template.replace("{file_path}", file_path)
+                else:
+                    cmd = f"{cmd_template} {file_path}"
+                subprocess.Popen(shlex.split(cmd))
+
+            message = {"id": tool_id, "files": files_to_open, "external_editor": True, "status": "opened"}
             return message, "done"
         except Exception as e:
-            log.exception(f"Error opening tool in VS Code: {e}")
+            log.exception(f"Error opening tool in code editor: {e}")
             return {"error": str(e)}, "error"
 
     def remove_tool_from_xml(self, tool_conf_path, tool_file_path):

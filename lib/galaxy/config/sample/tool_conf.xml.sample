@@ -269,4 +269,4 @@
 
   </section>
 
-<tool file="local_tools/extract_3_channels/extract_3_channels.xml" /></toolbox>
+<tool file="local_tools/extract_3_channels/extract_3_channels.xml" /><tool file="local_tools/scale_image_advanced/scale_image_advanced.xml" /></toolbox>

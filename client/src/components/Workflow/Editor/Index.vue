@@ -209,26 +209,6 @@
                             @attemptRefactor="onAttemptRefactor"
                             @close="activeNodeId = null"></NodeInspector>
                     </WorkflowGraph>
-
-                    <!-- Code-Server Separator -->
-                    <button
-                        v-if="showPanel"
-                        type="button"
-                        class="code-server-separator"
-                        :class="{ dragging: isDraggingCodeServerSeparator }"
-                        aria-label="Resize editor panel"
-                        title="Drag to resize editor panel"
-                        @mousedown="startCodeServerResize" />
-
-                    <!-- Code-Server Panel -->
-                    <div v-if="showPanel" class="code-server-panel-wrapper" :style="{ width: `${panelWidth}px` }">
-                        <CodeServerPanel :tool="currentTool" @close="closeCodeServerPanel" />
-                    </div>
-
-                    <!-- Pointer events blocker during resize -->
-                    <div
-                        v-if="isDraggingCodeServerSeparator"
-                        class="resize-overlay" />
                 </div>
             </div>
         </template>
@@ -243,7 +223,7 @@ import { until, whenever } from "@vueuse/core";
 import { logicAnd, logicNot, logicOr } from "@vueuse/math";
 import { Toast } from "composables/toast";
 import { storeToRefs } from "pinia";
-import Vue, { computed, nextTick, onMounted, onUnmounted, ref, unref, watch } from "vue";
+import Vue, { computed, nextTick, onUnmounted, ref, unref, watch } from "vue";
 
 import { getUntypedWorkflowParameters } from "@/components/Workflow/Editor/modules/parameters";
 import { ConfirmDialog, useConfirmDialog } from "@/composables/confirmDialog";
@@ -281,21 +261,18 @@ import StateUpgradeModal from "./StateUpgradeModal.vue";
 import WorkflowAttributes from "./WorkflowAttributes.vue";
 import WorkflowGraph from "./WorkflowGraph.vue";
 import ActivityBar from "@/components/ActivityBar/ActivityBar.vue";
-import CodeServerPanel from "@/components/CodeServer/CodeServerPanel.vue";
 import MarkdownEditor from "@/components/Markdown/MarkdownEditor.vue";
 import InputPanel from "@/components/Panels/InputPanel.vue";
 import ToolPanel from "@/components/Panels/ToolPanel.vue";
 import UserToolPanel from "@/components/Panels/UserToolPanel.vue";
 import WorkflowPanel from "@/components/Panels/WorkflowPanel.vue";
 import UndoRedoStack from "@/components/UndoRedo/UndoRedoStack.vue";
-import { useCodeServerStore } from "@/stores/codeServerStore";
 
 library.add(faArrowLeft, faArrowRight, faHistory);
 
 export default {
     components: {
         ActivityBar,
-        CodeServerPanel,
         MarkdownEditor,
         SaveChangesModal,
         StateUpgradeModal,
@@ -337,48 +314,6 @@ export default {
     },
     setup(props, { emit }) {
         const { datatypes, datatypesMapper, datatypesMapperLoading } = useDatatypesMapper();
-        const codeServerStore = useCodeServerStore();
-        const { showPanel, currentTool, panelWidth } = storeToRefs(codeServerStore);
-
-        const isDraggingCodeServerSeparator = ref(false);
-        const startX = ref(0);
-        const startWidth = ref(0);
-
-        function startCodeServerResize(event) {
-            isDraggingCodeServerSeparator.value = true;
-            startX.value = event.clientX;
-            startWidth.value = panelWidth.value;
-        }
-
-        function handleCodeServerResize(event) {
-            if (!isDraggingCodeServerSeparator.value) {
-                return;
-            }
-
-            const deltaX = event.clientX - startX.value;
-            const newWidth = startWidth.value - deltaX;
-            codeServerStore.setPanelWidth(newWidth);
-        }
-
-        function stopCodeServerResize() {
-            isDraggingCodeServerSeparator.value = false;
-        }
-
-        function closeCodeServerPanel() {
-            codeServerStore.closePanel();
-        }
-
-        // Add global resize listeners on mount
-        onMounted(() => {
-            document.addEventListener("mousemove", handleCodeServerResize);
-            document.addEventListener("mouseup", stopCodeServerResize);
-        });
-
-        // Clean up listeners on unmount
-        onUnmounted(() => {
-            document.removeEventListener("mousemove", handleCodeServerResize);
-            document.removeEventListener("mouseup", stopCodeServerResize);
-        });
 
         const uid = unref(useUid("workflow-editor-"));
         const id = ref(props.workflowId || uid);
@@ -728,12 +663,6 @@ export default {
             confirm,
             inputs,
             workflowActivities,
-            showPanel,
-            currentTool,
-            panelWidth,
-            isDraggingCodeServerSeparator,
-            startCodeServerResize,
-            closeCodeServerPanel,
         };
     },
     data() {
@@ -1325,42 +1254,5 @@ export default {
     flex: 1;
     min-width: 0;
     overflow: hidden;
-}
-
-.code-server-panel-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    border-left: 1px solid #e0e0e0;
-    background-color: #1e1e1e;
-    position: relative;
-}
-
-.code-server-separator {
-    width: 4px;
-    height: 100%;
-    cursor: col-resize;
-    background-color: #e0e0e0;
-    border: none;
-    border-left: 1px solid #d0d0d0;
-    border-right: 1px solid #f0f0f0;
-    flex-shrink: 0;
-    padding: 0;
-    transition: background-color 0.2s;
-}
-
-.code-server-separator:hover,
-.code-server-separator.dragging {
-    background-color: #0078d4;
-}
-
-.resize-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    cursor: col-resize;
 }
 </style>

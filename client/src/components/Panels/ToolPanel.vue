@@ -333,15 +333,21 @@ async function onDeleteTool(toolId: string) {
 
 async function onOpenTool(tool: any) {
     try {
-        // Execute the server command to open VS Code locally
-        const url = `${getAppRoot()}api/tools/open_tool_in_vscode/`;
-        await axios.post(url, { id: tool.id });
-    } catch (e) {
-        console.error("Failed to open tool in VS Code:", e);
-    }
+        // Call the API to open the tool in a code editor
+        const url = `${getAppRoot()}api/tools/open_tool_in_code_editor/`;
+        const response = await axios.post(url, { id: tool.id });
+        const data = response.data;
 
-    // Also open the code-server web panel
-    codeServerStore.openPanel(tool);
+        // If external_editor is false (or not set), open the frontend code-server panel
+        // If external_editor is true, an external editor was launched, so don't open the panel
+        if (!data.external_editor) {
+            codeServerStore.openPanel(tool);
+        }
+    } catch (e) {
+        console.error("Failed to open tool in code editor:", e);
+        // On error, fall back to opening the frontend panel
+        codeServerStore.openPanel(tool);
+    }
 }
 
 watch(

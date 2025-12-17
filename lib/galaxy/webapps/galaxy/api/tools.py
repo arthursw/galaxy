@@ -476,13 +476,13 @@ class ToolsController(BaseGalaxyAPIController, UsesVisualizationMixin):
         return trans.app.toolbox.delete_tool_config(tool_id)
 
     @expose_api
-    def open_tool_in_vscode(self, trans: GalaxyWebTransaction, payload, **kwds):
+    def open_tool_in_code_editor(self, trans: GalaxyWebTransaction, payload, **kwds):
         """
-        POST /api/tools/open_tool_in_vscode
-        Open a tool in VS Code.
+        POST /api/tools/open_tool_in_code_editor
+        Open a tool in a code editor.
         """
         tool_id = payload.get("id")
-        return trans.app.toolbox.open_tool_in_vscode(tool_id)
+        return trans.app.toolbox.open_tool_in_code_editor(tool_id)
 
     @web.require_admin
     @expose_api
