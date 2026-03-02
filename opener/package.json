@@ -2,7 +2,7 @@
   "name": "opener",
   "displayName": "Opener",
   "description": "Runs a server which listens for commands to open files, folders and workspaces.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "sairpico",
   "engines": {
     "vscode": "^1.106.1"

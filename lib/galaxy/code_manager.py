@@ -15,7 +15,7 @@ class CodeManager:
 
         # Launch the code-server environment
         commands = [
-            'code-server --install-extension opener-0.0.1.vsix', # Install the extension
+            'code-server --install-extension opener-0.0.2.vsix', # Install the extension
             'code-server --install-extension ms-python.python',
             'code-server --install-extension ms-python.vscode-python-envs',
             'code-server --install-extension ms-python.debugpy',
