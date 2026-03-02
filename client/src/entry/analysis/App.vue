@@ -301,6 +301,10 @@ export default {
 </style>
 
 <style scoped>
+#app {
+    height: 100%;
+}
+
 .app-layout {
     display: flex;
     flex-direction: row;
@@ -321,12 +325,15 @@ export default {
     border-left: 1px solid #e0e0e0;
     background-color: #1e1e1e;
     position: relative;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .code-server-separator {
     width: 4px;
     height: 100%;
-    cursor: col-resize;
+    min-height: 100%;
+    cursor: col-resize !important;
     background-color: #e0e0e0;
     border: none;
     border-left: 1px solid #d0d0d0;
