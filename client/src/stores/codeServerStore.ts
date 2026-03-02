@@ -7,9 +7,9 @@ import { ref } from "vue";
 import type { Tool } from "./toolStore";
 
 export const useCodeServerStore = defineStore("codeServerStore", () => {
-    const showPanel = ref(false);
+    const showPanel = ref(true);
     const currentTool = ref<Tool | null>(null);
-    const panelWidth = ref(400); // Default width in pixels
+    const panelWidth = ref(typeof window !== "undefined" ? window.innerWidth / 2 : 400); // Default width to half of screen
 
     function openPanel(tool: Tool) {
         currentTool.value = tool;

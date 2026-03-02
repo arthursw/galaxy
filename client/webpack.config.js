@@ -76,6 +76,7 @@ module.exports = (env = {}, argv = {}) => {
                 url: false,
                 perf_hooks: false,
                 buffer: require.resolve("buffer/"),
+                events: require.resolve("events/"),
             },
             alias: {
                 vue$: path.resolve(__dirname, "node_modules/vue/dist/vue.esm.js"),

@@ -1,11 +1,13 @@
 import type { UseElementBoundingReturn } from "@vueuse/core";
 import { computed, reactive, ref, set, type UnwrapRef } from "vue";
 
-import type { OutputTerminals } from "@/components/Workflow/Editor/modules/terminals";
+// import type { OutputTerminals } from "@/components/Workflow/Editor/modules/terminals";
 import reportDefault from "@/components/Workflow/Editor/reportDefault";
 import { useUserLocalStorage } from "@/composables/userLocalStorage";
 
 import { defineScopedStore } from "./scopedStore";
+
+type DraggingTerminal = { stepId: number; name: string; [key: string]: unknown };
 
 export interface InputTerminalPosition {
     endX: number;
@@ -39,7 +41,7 @@ export const useWorkflowStateStore = defineScopedStore("workflowStateStore", () 
     const inputTerminals = ref<InputTerminalPositions>({});
     const outputTerminals = ref<OutputTerminalPositions>({});
     const draggingPosition = ref<TerminalPosition | null>(null);
-    const draggingTerminal = ref<OutputTerminals | null>(null);
+    const draggingTerminal = ref<DraggingTerminal | null>(null);
     const activeNodeId = ref<number | null>(null);
     const scale = ref(1);
     const stepPosition = ref<StepPosition>({});
