@@ -6,13 +6,26 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { Tool } from "./toolStore";
 
+export interface OpenToolResponse {
+    id: string;
+    tool_dir: string;
+    config_file: string;
+    files: string[];
+    external_editor: boolean;
+    status: string;
+}
+
 export const useCodeServerStore = defineStore("codeServerStore", () => {
-    const showPanel = ref(true);
+    const showPanel = ref(false);
     const currentTool = ref<Tool | null>(null);
+    const currentToolDir = ref<string>("");
+    const currentConfigFile = ref<string>("");
     const panelWidth = ref(typeof window !== "undefined" ? window.innerWidth / 2 : 400); // Default width to half of screen
 
-    function openPanel(tool: Tool) {
+    function openPanel(tool: Tool, response?: OpenToolResponse) {
         currentTool.value = tool;
+        currentToolDir.value = response?.tool_dir || "";
+        currentConfigFile.value = response?.config_file || "";
         showPanel.value = true;
     }
 
@@ -31,6 +44,8 @@ export const useCodeServerStore = defineStore("codeServerStore", () => {
     return {
         showPanel,
         currentTool,
+        currentToolDir,
+        currentConfigFile,
         panelWidth,
         openPanel,
         closePanel,

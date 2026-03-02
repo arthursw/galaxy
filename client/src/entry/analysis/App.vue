@@ -52,7 +52,10 @@
                 v-if="showCodeServerPanel && !embedded"
                 class="code-server-panel-wrapper"
                 :style="{ width: `${codeServerPanelWidth}px` }">
-                <CodeServerPanel :tool="currentCodeServerTool" @close="closeCodeServerPanel" />
+                <CodeServerPanel
+                    :tool-dir="currentCodeServerToolDir"
+                    :config-file="currentCodeServerConfigFile"
+                    @close="closeCodeServerPanel" />
             </div>
 
             <!-- Pointer events blocker during resize -->
@@ -155,8 +158,12 @@ export default {
 
         // Code Server Panel integration
         const codeServerStore = useCodeServerStore();
-        const { showPanel: showCodeServerPanel, currentTool: currentCodeServerTool, panelWidth: codeServerPanelWidth } =
-            storeToRefs(codeServerStore);
+        const {
+            showPanel: showCodeServerPanel,
+            currentToolDir: currentCodeServerToolDir,
+            currentConfigFile: currentCodeServerConfigFile,
+            panelWidth: codeServerPanelWidth,
+        } = storeToRefs(codeServerStore);
 
         const isDraggingCodeServerSeparator = ref(false);
         const startX = ref(0);
@@ -208,7 +215,8 @@ export default {
             embedded,
             // Code Server Panel
             showCodeServerPanel,
-            currentCodeServerTool,
+            currentCodeServerToolDir,
+            currentCodeServerConfigFile,
             codeServerPanelWidth,
             isDraggingCodeServerSeparator,
             startCodeServerResize,

@@ -1353,7 +1353,14 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
 
             # If no external editor command configured, signal frontend to use its editor
             if not cmd_template.strip():
-                message = {"id": tool_id, "files": files_to_open, "external_editor": False, "status": "opened"}
+                message = {
+                    "id": tool_id,
+                    "tool_dir": str(tool_dir),
+                    "config_file": str(tool_config_path),
+                    "files": files_to_open,
+                    "external_editor": False,
+                    "status": "opened",
+                }
                 return message, "done"
 
             # Open each file with the configured external editor command
@@ -1367,7 +1374,14 @@ class AbstractToolBox(ManagesIntegratedToolPanelMixin):
                     cmd = f"{cmd_template} {file_path}"
                 subprocess.Popen(shlex.split(cmd))
 
-            message = {"id": tool_id, "files": files_to_open, "external_editor": True, "status": "opened"}
+            message = {
+                "id": tool_id,
+                "tool_dir": str(tool_dir),
+                "config_file": str(tool_config_path),
+                "files": files_to_open,
+                "external_editor": True,
+                "status": "opened",
+            }
             return message, "done"
         except Exception as e:
             log.exception(f"Error opening tool in code editor: {e}")

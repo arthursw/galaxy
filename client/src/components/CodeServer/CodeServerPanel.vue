@@ -1,7 +1,7 @@
 <template>
     <div class="code-server-panel">
         <div class="code-server-header">
-            <h2 class="code-server-title">VS Code - {{ fileName }}</h2>
+            <h2 class="code-server-title">VS Code: - {{ folderName }}</h2>
             <button class="code-server-close-btn" title="Close editor" @click="onClose">
                 ×
             </button>
@@ -10,7 +10,7 @@
             <iframe
                 src="http://localhost:32344"
                 class="code-server-iframe"
-                title="VS Code Web Editor"
+                title="VS Code: Web Editor"
                 frameborder="0"
                 allow="clipboard-read; clipboard-write" />
         </div>
@@ -20,40 +20,60 @@
 <script setup lang="ts">
 // eslint-disable-next-line import/order
 import { computed, watch } from "vue";
-// eslint-disable-next-line import/order
-import type { Tool } from "@/stores/toolStore";
 
 const EXTENSION_API_URL = "http://127.0.0.1:60351/open";
 
 interface Props {
-    tool?: Tool | null;
+    toolDir?: string;
+    configFile?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    tool: null,
+    toolDir: "",
+    configFile: "",
 });
 
 const emit = defineEmits<{
     (e: "close"): void;
 }>();
 
-const filePath = computed(() => props.tool?.config_file || "");
-
-const fileName = computed(() => {
-    if (!filePath.value) {
-        return "No file";
+const folderName = computed(() => {
+    if (!props.toolDir) {
+        return "No folder";
     }
-    return filePath.value.split("/").pop() || filePath.value;
+    return props.toolDir.split("/").pop() || props.toolDir;
 });
 
 /**
- * Call the VS Code extension API to open a file
- * This avoids reloading the iframe URL which would reset the editor
+ * Call the VS Code: extension API to open a folder as workspace
  */
-async function openFileInVsCode(path: string) {
+async function openFolderInVsCode(folderPath: string) {
     try {
         const params = new URLSearchParams({
-            path: path,
+            path: folderPath,
+            type: "folder",
+            new_window: "false",
+        });
+
+        const response = await fetch(`${EXTENSION_API_URL}?${params}`, {
+            method: "GET",
+        });
+
+        if (!response.ok) {
+            console.warn(`Failed to open folder in VS Code:: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error("Error calling VS Code: extension API:", error);
+    }
+}
+
+/**
+ * Call the VS Code: extension API to open a file
+ */
+async function openFileInVsCode(filePath: string) {
+    try {
+        const params = new URLSearchParams({
+            path: filePath,
             type: "file",
             new_window: "false",
         });
@@ -63,19 +83,24 @@ async function openFileInVsCode(path: string) {
         });
 
         if (!response.ok) {
-            console.warn(`Failed to open file in VS Code: ${response.statusText}`);
+            console.warn(`Failed to open file in VS Code:: ${response.statusText}`);
         }
     } catch (error) {
-        console.error("Error calling VS Code extension API:", error);
+        console.error("Error calling VS Code: extension API:", error);
     }
 }
 
-// Watch for changes to the tool and open the file in VS Code
+// Watch for changes to the tool folder and open it in VS Code:
 watch(
-    () => props.tool?.config_file,
-    (newFilePath) => {
-        if (newFilePath) {
-            void openFileInVsCode(newFilePath);
+    () => props.toolDir,
+    async (newToolDir) => {
+        if (newToolDir) {
+            // First open the folder as workspace
+            await openFolderInVsCode(newToolDir);
+            // Then open the config file if available
+            if (props.configFile) {
+                await openFileInVsCode(props.configFile);
+            }
         }
     }
 );
