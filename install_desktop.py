@@ -48,6 +48,39 @@ def run_cmd(cmd, cwd=None, description=None):
     except FileNotFoundError as e:
         error(f"Command not found: {cmd[0]}\n{str(e)}")
 
+def restore_symlinks():
+    """Restore symlinks broken by GitHub archive extraction.
+
+    GitHub tarballs/zips don't preserve symlinks — they become plain text
+    files containing the relative target path. This function detects them
+    and recreates proper symlinks.
+    """
+    log("Restoring symlinks from archive extraction...")
+    restored = 0
+    script_dir = Path(__file__).parent.resolve()
+
+    for file_path in script_dir.rglob("*"):
+        if not file_path.is_file() or file_path.is_symlink():
+            continue
+        if file_path.stat().st_size > 256:
+            continue
+        try:
+            content = file_path.read_text(encoding="utf-8").strip()
+        except (UnicodeDecodeError, OSError):
+            continue
+        if not (content.startswith("../") or content.startswith("./")):
+            continue
+        if "\n" in content:
+            continue
+        target = (file_path.parent / content).resolve()
+        if target.exists() and target != file_path.resolve():
+            file_path.unlink()
+            file_path.symlink_to(os.path.relpath(target, file_path.parent))
+            restored += 1
+
+    log(f"  Restored {restored} symlink(s)")
+
+
 
 def copy_sample_files():
     """Copy sample configuration files if they don't exist."""
@@ -147,6 +180,7 @@ def main():
 
     try:
         # Execute steps in order
+        restore_symlinks()
         copy_sample_files()
         build_client()
         init_tool_dependencies()

@@ -64,12 +64,8 @@ class GalaxyLauncher:
         # Change to the Galaxy directory
         os.chdir(self.script_dir)
 
-        # Find Python executable in venv
-        python_exe = self.script_dir / ".venv" / "bin" / "python"
-        if not python_exe.exists():
-            print(f"Error: Python executable not found at {python_exe}")
-            print("Please ensure the virtual environment is set up correctly.")
-            sys.exit(1)
+        # Use the current Python executable (works with any venv location: .venv, pixi, etc.)
+        python_exe = sys.executable
 
         # Set up environment variables
         env = os.environ.copy()

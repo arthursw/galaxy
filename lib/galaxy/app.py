@@ -902,6 +902,7 @@ class UniverseApplication(StructuredApp, GalaxyManagerApplication, InstallationT
         self.legacy_mapper = None
         self.application_stack.register_postfork_function(self.object_store.start)
         log.info(f"Galaxy app startup finished {startup_timer}")
+        log.info(f"Galaxy intialized")
 
     def _shutdown_queue_worker(self):
         self.queue_worker.shutdown()
