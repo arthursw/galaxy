@@ -21,7 +21,16 @@ Community support is available at `Galaxy Help <https://help.galaxyproject.org/>
     :target: https://travis-ci.org/galaxyproject/galaxy
     :alt: Inspect the test results
 
-Galaxy Quickstart
+Galaxy (BioImageIT) Quickstart
+=================
+
+Install [pixi](pixi.sh).
+
+Run the installer: `pixi run python install_desktop.py`
+Run Galaxy Desktop: `pixi run python launch_galaxy_desktop.py`
+
+
+Original Galaxy Quickstart
 =================
 
 Galaxy requires Python 3.9 or higher. To check your Python version, run:
