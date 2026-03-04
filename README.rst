@@ -24,10 +24,20 @@ Community support is available at `Galaxy Help <https://help.galaxyproject.org/>
 Galaxy (BioImageIT) Quickstart
 =================
 
-Install [pixi](pixi.sh).
+Install Pixi from https://pixi.sh/.
 
-Run the installer: `pixi run python install_desktop.py`
-Run Galaxy Desktop: `pixi run python launch_galaxy_desktop.py`
+Run the installer: 
+
+
+.. code:: console
+
+    pixi run python install_desktop.py
+
+Run Galaxy Desktop: 
+
+.. code:: console
+    
+    pixi run python launch_galaxy_desktop.py
 
 
 Original Galaxy Quickstart
