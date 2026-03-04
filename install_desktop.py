@@ -28,7 +28,7 @@ def error(msg):
     sys.exit(1)
 
 
-def run_cmd(cmd, cwd=None, description=None):
+def run_cmd(cmd, cwd=None, description=None, extra_env=None):
     """
     Run a command and exit on failure.
 
@@ -36,12 +36,17 @@ def run_cmd(cmd, cwd=None, description=None):
         cmd: Command as list of strings (for subprocess)
         cwd: Working directory (None = current dir)
         description: Human-readable description for logging
+        extra_env: Optional dict of environment variables to merge with current environment (for subprocess)
     """
     desc = description or " ".join(cmd)
     log(f"Executing: {desc}")
+    env = None
+    if extra_env is not None:
+        env = os.environ.copy()
+        env.update(extra_env)
 
     try:
-        result = subprocess.run(cmd, cwd=cwd, check=True)
+        result = subprocess.run(cmd, cwd=cwd, env=env, check=True)
         return result.returncode
     except subprocess.CalledProcessError as e:
         error(f"Command failed: {desc}\nExit code: {e.returncode}")
@@ -163,9 +168,13 @@ def init_tool_dependencies():
     """Initialize tool dependencies."""
     log("Initializing tool dependencies...")
 
+    script_dir = Path(__file__).parent.resolve()
+    config_file = script_dir / "config" / "galaxy_debug.yml"
+    extra_env = {"GALAXY_CONFIG_FILE": str(config_file)}
     run_cmd(
         ["python", "./scripts/manage_tool_dependencies.py", "init_if_needed"],
-        description="Initialize tool dependencies"
+        description="Initialize tool dependencies",
+        extra_env=extra_env
     )
 
     log("Tool dependencies initialization completed")

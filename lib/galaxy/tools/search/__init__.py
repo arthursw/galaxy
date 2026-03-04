@@ -80,7 +80,7 @@ def get_or_create_index(index_dir, schema):
 
     # Delete the old index and return a new index reference
     shutil.rmtree(index_dir)
-    os.makedirs(index_dir)
+    os.makedirs(index_dir, exist_ok=True)
     return index.create_in(index_dir, schema=schema)
 
 
